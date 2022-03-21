@@ -291,6 +291,7 @@ namespace eosio { namespace vm {
 
 #undef LANEMEM_OP
 
+      void emit_i8x16_shuffle(const uint8_t* lanes) { unimplemented(); }
       void emit_i8x16_splat() { unimplemented(); }
       void emit_v128_const(v128_t value) { unimplemented(); }
 

@@ -208,6 +208,8 @@ class null_writer {
    void emit_v128_load16_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
    void emit_v128_load32_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
    void emit_v128_load64_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load32_zero(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_load64_zero(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
    void emit_v128_store(uint32_t /*offset*/, uint32_t /*alignment*/) {}
    void emit_v128_load8_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
    void emit_v128_load16_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
@@ -218,6 +220,7 @@ class null_writer {
    void emit_v128_store32_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
    void emit_v128_store64_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
    void emit_v128_const(v128_t /*value*/) {}
+   void emit_i8x16_shuffle(const uint8_t* /*lanes*/) {}
    void emit_i8x16_splat() {}
 
    void fix_branch(branch_t, label_t) {}

@@ -306,7 +306,7 @@
 #define EOS_VM_VEC_CONSTANT_OPS(opcode_macro)   \
    opcode_macro(v128_const, 12)
 #define EOS_VM_VEC_SHUFFLE_OPS(opcode_macro)    \
-   opcode_macro(v128_shuffle, 13)
+   opcode_macro(i8x16_shuffle, 13)
 #define EOS_VM_VEC_LANE_OPS(opcode_macro)       \
    opcode_macro(i8x16_extract_lane_s, 21)       \
    opcode_macro(i8x16_extract_lane_u, 22)       \

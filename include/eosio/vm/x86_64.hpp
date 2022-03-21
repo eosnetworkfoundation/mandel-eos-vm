@@ -2284,8 +2284,6 @@ namespace eosio { namespace vm {
          emit_bytes(0xc4, 0xe3, 0xf9, 0x16, 0x00, lane);
       }
 
-      
-      
       void emit_v128_const(v128_t value)
       {
          uint64_t low,high;
@@ -2295,16 +2293,49 @@ namespace eosio { namespace vm {
          emit_i64_const(low);
       }
 
-      void emit_v128_shuffle(uint8_t lanes[16])
+      void emit_i8x16_shuffle(const uint8_t lanes[16])
       {
+         auto emit_shuffle_operand = [this](const uint8_t lanes[8]) {
+            for(int i = 0; i < 8; ++i)
+            {
+               if(lanes[i] < 16)
+               {
+                  emit_byte(~lanes[i]);
+               }
+               else
+               {
+                  emit_byte(lanes[i]);
+               }
+            }
+         };
          // general case:
-         // load lanes into %xmm0
-         // vmovups (%rsp), %ymm1 // AVX
-         // vpshufb %ymm0, %ymm1, %ymm0
-         // add $16, %rsp
-         // movups %xmm0, %(rsp)
+         // movabsq $lanes[0-7], %rax
+         emit_bytes(0x48, 0xb8);
+         emit_shuffle_operand(lanes);
+         // vmovq %rax, %xmm2
+         emit_bytes(0xc4, 0xe1, 0xf9, 0x6e, 0xd0);
+         // movabsq $lanes[8-15], %rax
+         emit_bytes(0x48, 0xb8);
+         emit_shuffle_operand(lanes + 8);
+         // vpinsrq $1, %rax, %xmm2, %xmm2
+         emit_bytes(0xc4, 0xe3, 0xe9, 0x22, 0xd0, 0x01);
+
+         emit_movups(*rsp, xmm0);
+         // vpshufb %xmm2, %xmm0, %xmm1
+         emit_bytes(0xc4, 0xe2, 0x79, 0x00, 0xca);
+         // vpcmpeqb %xmm0, %xmm0, %xmm0
+         emit_bytes(0xc5, 0xf9, 0x74, 0xc0);
+         // vpxor %xmm0, %xmm2, %xmm2
+         emit_bytes(0xc5, 0xe9, 0xef, 0xd0);
+         emit_add(16, rsp);
+         emit_movups(*rsp, xmm0);
+         // vpshufb %xmm2, %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x00, 0xc2);
+         // vpor %xmm1, %xmm0, %xmm0
+         emit_bytes(0xc5, 0xf9, 0xeb, 0xc1);
+         emit_movups(xmm0, *rsp);
       }
-      
+
       void emit_i8x16_extract_lane_s(uint8_t l)
       {
          // movups (%rsp)

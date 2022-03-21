@@ -1303,7 +1303,21 @@ namespace eosio { namespace vm {
                         op_stack.push(types::v128);
                         break;
                      }
-                         
+
+                     case vec_opcodes::i8x16_shuffle: {
+                        check_in_bounds();
+                        uint8_t* lanes = code.raw();
+                        code += 16;
+                        for(int i = 0; i < 16; ++i)
+                        {
+                           EOS_VM_ASSERT(lanes[i] < 32, wasm_parse_exception, "shuffle laneidx must be less than 32");
+                        }
+                        code_writer.emit_i8x16_shuffle(lanes);
+                        op_stack.pop(types::v128);
+                        op_stack.pop(types::v128);
+                        op_stack.push(types::v128);
+                     } break;
+                     
                      case vec_opcodes::i8x16_splat: {
                          check_in_bounds();
                          code_writer.emit_i8x16_splat();
