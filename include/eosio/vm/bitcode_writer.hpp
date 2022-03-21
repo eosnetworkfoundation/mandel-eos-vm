@@ -291,9 +291,17 @@ namespace eosio { namespace vm {
 
 #undef LANEMEM_OP
 
-      void emit_i8x16_shuffle(const uint8_t* lanes) { unimplemented(); }
-      void emit_i8x16_splat() { unimplemented(); }
       void emit_v128_const(v128_t value) { unimplemented(); }
+      void emit_i8x16_shuffle(const uint8_t* lanes) { unimplemented(); }
+
+#define LANE_OP(op_name, opcode)                                         \
+      void emit_ ## op_name(uint8_t laneidx) { unimplemented(); }
+
+      EOS_VM_VEC_LANE_OPS(LANE_OP)
+
+#undef LANE_OP
+
+      void emit_i8x16_splat() { unimplemented(); }
 
       void emit_error() { fb[op_index++] = error_t{}; }
       

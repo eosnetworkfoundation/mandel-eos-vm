@@ -1317,7 +1317,45 @@ namespace eosio { namespace vm {
                         op_stack.pop(types::v128);
                         op_stack.push(types::v128);
                      } break;
-                     
+
+#define EXTRACT_LANE_OP(opcode, type, N)                                \
+                     case vec_opcodes::opcode: {                        \
+                        check_in_bounds();                              \
+                        uint8_t laneidx = *code++;                      \
+                        EOS_VM_ASSERT(laneidx < N, wasm_parse_exception, "laneidx must be smaller than dim(shape)"); \
+                        op_stack.pop(types::v128);                      \
+                        op_stack.push(types::type);                     \
+                        code_writer.emit_ ## opcode(laneidx);           \
+                     } break;
+
+#define REPLACE_LANE_OP(opcode, type, N)                                \
+                     case vec_opcodes::opcode: {                        \
+                        check_in_bounds();                              \
+                        uint8_t laneidx = *code++;                      \
+                        EOS_VM_ASSERT(laneidx < N, wasm_parse_exception, "laneidx must be smaller than dim(shape)"); \
+                        op_stack.pop(types::type);                      \
+                        op_stack.pop(types::v128);                      \
+                        op_stack.push(types::v128);                     \
+                        code_writer.emit_ ## opcode(laneidx);           \
+                     } break;
+
+                     EXTRACT_LANE_OP(i8x16_extract_lane_s, i32, 16)
+                     EXTRACT_LANE_OP(i8x16_extract_lane_u, i32, 16)
+                     REPLACE_LANE_OP(i8x16_replace_lane, i32, 16)
+                     EXTRACT_LANE_OP(i16x8_extract_lane_s, i32, 8)
+                     EXTRACT_LANE_OP(i16x8_extract_lane_u, i32, 8)
+                     REPLACE_LANE_OP(i16x8_replace_lane, i32, 8)
+                     EXTRACT_LANE_OP(i32x4_extract_lane, i32, 4)
+                     REPLACE_LANE_OP(i32x4_replace_lane, i32, 4)
+                     EXTRACT_LANE_OP(i64x2_extract_lane, i64, 2)
+                     REPLACE_LANE_OP(i64x2_replace_lane, i64, 2)
+                     EXTRACT_LANE_OP(f32x4_extract_lane, f32, 4)
+                     REPLACE_LANE_OP(f32x4_replace_lane, f32, 4)
+                     EXTRACT_LANE_OP(f64x2_extract_lane, f64, 2)
+                     REPLACE_LANE_OP(f64x2_replace_lane, f64, 2)
+
+#undef EXTRACT_LANE_OP
+   
                      case vec_opcodes::i8x16_splat: {
                          check_in_bounds();
                          code_writer.emit_i8x16_splat();

@@ -221,6 +221,20 @@ class null_writer {
    void emit_v128_store64_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
    void emit_v128_const(v128_t /*value*/) {}
    void emit_i8x16_shuffle(const uint8_t* /*lanes*/) {}
+   void emit_i8x16_extract_lane_s(uint8_t /*laneidx*/) {}
+   void emit_i8x16_extract_lane_u(uint8_t /*laneidx*/) {}
+   void emit_i8x16_replace_lane(uint8_t /*laneidx*/) {}
+   void emit_i16x8_extract_lane_s(uint8_t /*laneidx*/) {}
+   void emit_i16x8_extract_lane_u(uint8_t /*laneidx*/) {}
+   void emit_i16x8_replace_lane(uint8_t /*laneidx*/) {}
+   void emit_i32x4_extract_lane(uint8_t /*laneidx*/) {}
+   void emit_i32x4_replace_lane(uint8_t /*laneidx*/) {}
+   void emit_i64x2_extract_lane(uint8_t /*laneidx*/) {}
+   void emit_i64x2_replace_lane(uint8_t /*laneidx*/) {}
+   void emit_f32x4_extract_lane(uint8_t /*laneidx*/) {}
+   void emit_f32x4_replace_lane(uint8_t /*laneidx*/) {}
+   void emit_f64x2_extract_lane(uint8_t /*laneidx*/) {}
+   void emit_f64x2_replace_lane(uint8_t /*laneidx*/) {}
    void emit_i8x16_splat() {}
 
    void fix_branch(branch_t, label_t) {}

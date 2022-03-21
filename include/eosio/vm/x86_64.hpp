@@ -2338,11 +2338,132 @@ namespace eosio { namespace vm {
 
       void emit_i8x16_extract_lane_s(uint8_t l)
       {
-         // movups (%rsp)
-         // add $16, %rsp
-         // pextrb $l, %xmmN, %rax
-         // movsb %al, %eax 
-         // push %rax
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrb $l, %xmm0, %eax
+         emit_bytes(0xc4, 0xe3, 0x79, 0x14, 0xc0, l);
+         // movsx %al, %eax
+         emit_bytes(0x0f, 0xbe, 0xc0);
+         emit_push(rax);
+      }
+
+      void emit_i8x16_extract_lane_u(uint8_t l)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrb $l, %xmm0, %eax
+         emit_bytes(0xc4, 0xe3, 0x79, 0x14, 0xc0, l);
+         emit_push(rax);
+      }
+
+      void emit_i8x16_replace_lane(uint8_t l)
+      {
+         emit_pop(rax);
+         emit_movups(*rsp, xmm0);
+         // vpinsrb $l, %eax, %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0x79, 0x20, 0xc0, l);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i16x8_extract_lane_s(uint8_t l)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrw $l, %xmm0, %eax
+         emit_bytes(0xc5, 0xf9, 0xc5, 0xc0, l);
+         // movsx %ax, %eax
+         emit_bytes(0x0f, 0xbf, 0xc0);
+         emit_push(rax);
+      }
+
+      void emit_i16x8_extract_lane_u(uint8_t l)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrw $l, %xmm0, %eax
+         emit_bytes(0xc5, 0xf9, 0xc5, 0xc0, l);
+         emit_push(rax);
+      }
+
+      void emit_i16x8_replace_lane(uint8_t l)
+      {
+         emit_pop(rax);
+         emit_movups(*rsp, xmm0);
+         // vpinsrw $l, %eax, %xmm0, %xmm0
+         emit_bytes(0xc5, 0xf9, 0xc4, 0xc0, l);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_extract_lane(uint8_t l)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrd $l, %xmm0, %eax
+         emit_bytes(0xc4, 0xe3, 0x79, 0x16, 0xc0, l);
+         emit_push(rax);
+      }
+
+      void emit_i32x4_replace_lane(uint8_t l)
+      {
+         emit_pop(rax);
+         emit_movups(*rsp, xmm0);
+         // vpinsrd $l, %eax, %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0x79, 0x22, 0xc0, l);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_extract_lane(uint8_t l)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrq $l, %xmm0, %eax
+         emit_bytes(0xc4, 0xe3, 0xf9, 0x16, 0xc0, l);
+         emit_push(rax);
+      }
+
+      void emit_i64x2_replace_lane(uint8_t l)
+      {
+         emit_pop(rax);
+         emit_movups(*rsp, xmm0);
+         // vpinsrq $l, %eax, %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0xf9, 0x22, 0xc0, l);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_f32x4_extract_lane(uint8_t l)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrd $l, %xmm0, %eax
+         emit_bytes(0xc4, 0xe3, 0x79, 0x16, 0xc0, l);
+         emit_push(rax);
+      }
+
+      void emit_f32x4_replace_lane(uint8_t l)
+      {
+         emit_pop(rax);
+         emit_movups(*rsp, xmm0);
+         // vpinsrd $l, %eax, %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0x79, 0x22, 0xc0, l);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_f64x2_extract_lane(uint8_t l)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpextrq $l, %xmm0, %eax
+         emit_bytes(0xc4, 0xe3, 0xf9, 0x16, 0xc0, l);
+         emit_push(rax);
+      }
+
+      void emit_f64x2_replace_lane(uint8_t l)
+      {
+         emit_pop(rax);
+         emit_movups(*rsp, xmm0);
+         // vpinsrq $l, %eax, %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0xf9, 0x22, 0xc0, l);
+         emit_movups(xmm0, *rsp);
       }
 
       void emit_i8x16_splat()
@@ -2356,11 +2477,23 @@ namespace eosio { namespace vm {
       void emit_i8x16_swizzle()
       {
          // test x>15 and saturate to 255
-         // mov x, z
-         // mov 15*, y
-         // pcmpgtb y, z
-         // por x, z
-         // pshufb z, x
+         movups(*rsp, xmm0);
+         add(16, rsp);
+         // mov $0x0F0F0F0F, %eax
+         emit_bytes(0xb8);
+         emit_operand32(0x0f0f0f0f);
+         // vmovd %eax, %xmm1
+         emit_bytes(0xc5, 0xf9, 0x6e, 0xc8);
+         // vpshufd $0, %xmm1, %xmm1
+         emit_bytes(0xc5, 0xf9, 0x70, 0xc9, 0x00);
+         // vpcmpgtb %xmm1, %xmm0, %xmm1
+         emit_bytes(0xc5, 0xf9, 0x64, 0xc9);
+         // vpor %xmm0, %xmm1, %xmm1
+         emit_bytes(0xc5, 0xf1, 0xeb, 0xc8);
+         movups(*rsp, xmm0);
+         // vpshufb %xmm0, %xmm1, %xmm0
+         emit_bytes(0xc4, 0xe2, 0x71, 0x00, 0xc0);
+         movups(xmm0, *rsp);
       }
 
       void emit_i8x16_eq()
@@ -2422,6 +2555,22 @@ namespace eosio { namespace vm {
          }
       }
 
+      void emit_pop(general_register reg) {
+         if(reg == rax) {
+            emit_bytes(0x58);
+         } else {
+            unimplemented();
+         }
+      }
+      
+      void emit_push(general_register reg) {
+         if(reg == rax) {
+            emit_bytes(0x50);
+         } else {
+            unimplemented();
+         }
+      }
+      
       void emit_movups(simple_memory_ref mem, xmm_register reg) {
          if(reg == xmm0 && mem.reg == rsp) {
             emit_bytes(0x0f, 0x10, 0x04, 0x24);
