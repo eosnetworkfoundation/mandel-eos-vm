@@ -30,6 +30,8 @@ namespace eosio { namespace vm {
        case types::i64:
        case types::f64:
           return 8;
+       case types::v128:
+          return 16;
        default: return 0;
       }
    }
@@ -193,6 +195,8 @@ namespace eosio { namespace vm {
 
    PARSER_OPTION(parse_custom_section_name, false, bool);
 
+   PARSER_OPTION(enable_simd, true, bool)
+
 #undef MAX_ELEMENTS
 #undef PARSER_OPTION
 
@@ -286,6 +290,15 @@ namespace eosio { namespace vm {
          T result;
          memcpy(&result, code.raw(), sizeof(T));
          code += sizeof(T);
+         return result;
+      }
+
+      v128_t parse_v128(wasm_code_ptr& code) {
+         static_assert(sizeof(v128_t) == 16, "sanity check for layout");
+         auto guard = code.scoped_shrink_bounds(sizeof(v128_t));
+         v128_t result;
+         memcpy(&result, code.raw(), sizeof(v128_t));
+         code += sizeof(v128_t);
          return result;
       }
 
@@ -633,7 +646,7 @@ namespace eosio { namespace vm {
          const Options& options;
          void push(uint8_t type) {
             assert(type != unreachable_tag && type != scope_tag);
-            assert(type == types::i32 || type == types::i64 || type == types::f32 || type == types::f64 || type == any_type);
+            assert(type == types::i32 || type == types::i64 || type == types::f32 || type == types::f64 || type == any_type || (type == types::v128 && detail::get_enable_simd(options)));
             EOS_VM_ASSERT(operand_depth < std::numeric_limits<uint32_t>::max(), wasm_parse_exception, "integer overflow in operand depth");
             ++operand_depth;
             maximum_operand_depth = std::max(operand_depth, maximum_operand_depth);
@@ -1010,8 +1023,6 @@ namespace eosio { namespace vm {
                LOAD_OP(i64_load16_u, 1, i64)
                LOAD_OP(i64_load32_u, 2, i64)
 
-#undef LOAD_OP
-
 #define STORE_OP(op_name, max_align, type)                           \
                case opcodes::op_name: {                              \
                   check_in_bounds();                                 \
@@ -1034,8 +1045,6 @@ namespace eosio { namespace vm {
                STORE_OP(i64_store8, 0, i64)
                STORE_OP(i64_store16, 1, i64)
                STORE_OP(i64_store32, 2, i64)
-
-#undef STORE_OP
 
                case opcodes::current_memory:
                   EOS_VM_ASSERT(_mod->memories.size() != 0, wasm_parse_exception, "memory.size requires memory");
@@ -1219,6 +1228,92 @@ namespace eosio { namespace vm {
 #undef CASTOP
 #undef UNOP
 #undef BINOP
+                   
+               case opcodes::vector_prefix: {
+                  EOS_VM_ASSERT(detail::get_enable_simd(_options), wasm_parse_exception, "SIMD not enabled");
+                  switch(parse_varuint32(code))
+                  {
+#define opcodes vec_opcodes
+                     LOAD_OP(v128_load, 4, v128)
+                     LOAD_OP(v128_load8x8_s, 3, v128)
+                     LOAD_OP(v128_load8x8_u, 3, v128)
+                     LOAD_OP(v128_load16x4_s, 3, v128)
+                     LOAD_OP(v128_load16x4_u, 3, v128)
+                     LOAD_OP(v128_load32x2_s, 3, v128)
+                     LOAD_OP(v128_load32x2_u, 3, v128)
+                     LOAD_OP(v128_load8_splat, 0, v128)
+                     LOAD_OP(v128_load16_splat, 1, v128)
+                     LOAD_OP(v128_load32_splat, 2, v128)
+                     LOAD_OP(v128_load64_splat, 3, v128)
+                     LOAD_OP(v128_load32_zero, 2, v128)
+                     LOAD_OP(v128_load64_zero, 3, v128)
+                     STORE_OP(v128_store, 4, v128)
+#undef opcodes
+
+#undef LOAD_OP
+#undef STORE_OP
+
+#define LOADLANE_OP(op_name, max_align, type)                           \
+                     case vec_opcodes::op_name: {                       \
+                        check_in_bounds();                              \
+                        EOS_VM_ASSERT(_mod->memories.size() > 0, wasm_parse_exception, "load requires memory"); \
+                        uint32_t alignment = parse_varuint32(code);     \
+                        uint32_t offset = parse_varuint32(code);        \
+                        uint8_t lane = *code++;                         \
+                        EOS_VM_ASSERT(alignment <= uint32_t(max_align), wasm_parse_exception, "alignment cannot be greater than size."); \
+                        EOS_VM_ASSERT(offset <= detail::get_max_memory_offset(_options), wasm_parse_exception, "load offset too large."); \
+                        EOS_VM_ASSERT(lane < (1 << (4-max_align)), wasm_parse_exception, "laneidx out of bounds"); \
+                        op_stack.pop(types::type);                      \
+                        op_stack.pop(types::i32);                       \
+                        op_stack.push(types::type);                     \
+                        code_writer.emit_ ## op_name( alignment, offset, lane ); \
+                     } break;
+
+                     LOADLANE_OP(v128_load8_lane, 0, v128)
+                     LOADLANE_OP(v128_load16_lane, 1, v128)
+                     LOADLANE_OP(v128_load32_lane, 2, v128)
+                     LOADLANE_OP(v128_load64_lane, 3, v128)
+
+#undef LOADLANE_OP
+
+#define STORELANE_OP(op_name, max_align, type)                          \
+                     case vec_opcodes::op_name: {                       \
+                        check_in_bounds();                              \
+                        EOS_VM_ASSERT(_mod->memories.size() > 0, wasm_parse_exception, "load requires memory"); \
+                        uint32_t alignment = parse_varuint32(code);     \
+                        uint32_t offset = parse_varuint32(code);        \
+                        uint8_t lane = *code++;                         \
+                        EOS_VM_ASSERT(alignment <= uint32_t(max_align), wasm_parse_exception, "alignment cannot be greater than size."); \
+                        EOS_VM_ASSERT(offset <= detail::get_max_memory_offset(_options), wasm_parse_exception, "load offset too large."); \
+                        EOS_VM_ASSERT(lane < (1 << (4-max_align)), wasm_parse_exception, "laneidx out of bounds"); \
+                        op_stack.pop(types::type);                      \
+                        op_stack.pop(types::i32);                       \
+                        code_writer.emit_ ## op_name( alignment, offset, lane ); \
+                     } break;
+
+                     STORELANE_OP(v128_store8_lane, 0, v128)
+                     STORELANE_OP(v128_store16_lane, 1, v128)
+                     STORELANE_OP(v128_store32_lane, 2, v128)
+                     STORELANE_OP(v128_store64_lane, 3, v128)
+
+#undef STORELANE_OP
+
+                     case vec_opcodes::v128_const: {
+                        code_writer.emit_v128_const(parse_v128(code));
+                        op_stack.push(types::v128);
+                        break;
+                     }
+                         
+                     case vec_opcodes::i8x16_splat: {
+                         check_in_bounds();
+                         code_writer.emit_i8x16_splat();
+                         op_stack.pop(types::i32);
+                         op_stack.push(types::v128);
+                         break;
+                     }
+                     default: EOS_VM_ASSERT(false, wasm_parse_exception, "Illegal instruction");
+                  }
+               } break;
                default: EOS_VM_ASSERT(false, wasm_parse_exception, "Illegal instruction");
             }
          }

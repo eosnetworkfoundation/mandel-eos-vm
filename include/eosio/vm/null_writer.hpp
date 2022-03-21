@@ -197,6 +197,29 @@ class null_writer {
    void emit_f32_reinterpret_i32() {}
    void emit_f64_reinterpret_i64() {}
 
+   void emit_v128_load(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load8x8_s(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load8x8_u(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load16x4_s(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load16x4_u(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load32x2_s(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load32x2_u(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load8_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load16_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load32_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load64_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_store(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load8_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_load16_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_load32_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_load64_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_store8_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_store16_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_store32_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_store64_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_const(v128_t /*value*/) {}
+   void emit_i8x16_splat() {}
+
    void fix_branch(branch_t, label_t) {}
    void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}
    void emit_epilogue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}

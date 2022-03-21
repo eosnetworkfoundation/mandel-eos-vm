@@ -2074,6 +2074,269 @@ namespace eosio { namespace vm {
 
 #undef CHOOSE_FN
 
+      void emit_v128_load(uint32_t /*alignment*/, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // movups (%rax), %xmm0
+         emit_bytes(0x0f, 0x10, 0x00);
+         // sub $16, %rsp
+         emit_bytes(0x48, 0x83, 0xec, 0x10);
+         // movups %xmm0, (%rsp)
+         emit_bytes(0x0f, 0x11, 0x04, 0x24);
+      }
+
+      void emit_v128_load8x8_s(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpmovsxbw (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x20, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load8x8_u(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpmovzxbw (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x30, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load16x4_s(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpmovsxwd (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x23, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load16x4_u(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpmovzxwd (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x33, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load32x2_s(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpmovsxdq (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x25, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load32x2_u(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpmovzxdq (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x35, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load8_splat(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpbroadcastb (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x78, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load16_splat(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpbroadcastw (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x79, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load32_splat(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpbroadcastd (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x58, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load64_splat(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vpbroadcastq (%rax), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x59, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load32_zero(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vmovd (%rax), %xmm0
+         emit_bytes(0xc5, 0xf9, 0x6e, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load64_zero(uint32_t align, uint32_t offset)
+      {
+         emit_pop_address(offset);
+         // vmovq (%rax), %xmm0
+         emit_bytes(0xc5, 0xfa, 0x7e, 0x00);
+         emit_sub(0x10, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_store(uint32_t /*alignment*/, uint32_t offset)
+      {
+         // movups (%rsp), %xmm0
+         emit_bytes(0x0f, 0x10, 0x04, 0x24);
+         // add $16, %rsp
+         emit_bytes(0x48, 0x83, 0xc4, 0x10);
+         emit_pop_address(offset);
+         // movups %xmm0, (%rax)
+         emit_bytes(0x0f, 0x11, 0x00);
+      }
+
+      void emit_v128_load8_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpinsrb $lane, (%rax), %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0x79, 0x20, 0x00, lane);
+         emit_sub(16, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load16_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpinsrw $lane, (%rax), %xmm0, %xmm0
+         emit_bytes(0xc5, 0xf9, 0xc4, 0x00, lane);
+         emit_sub(16, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load32_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpinsrd $lane, (%rax), %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0x79, 0x22, 0x00, lane);
+         emit_sub(16, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_load64_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpinsrq $lane, (%rax), %xmm0, %xmm0
+         emit_bytes(0xc4, 0xe3, 0xf9, 0x22, 0x00, lane);
+         emit_sub(16, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_v128_store8_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpextrb $lane, %xmm0, (%rax)
+         emit_bytes(0xc4, 0xe3, 0x79, 0x14, 0x00, lane);
+      }
+
+      void emit_v128_store16_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpextrw $lane, %xmm0, (%rax)
+         emit_bytes(0xc4, 0xe3, 0x79, 0x15, 0x00, lane);
+      }
+
+      void emit_v128_store32_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpextrd $lane, %xmm0, (%rax)
+         emit_bytes(0xc4, 0xe3, 0x79, 0x16, 0x00, lane);
+      }
+
+      void emit_v128_store64_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
+      {
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         // vpextrq $lane, %xmm0, (%rax)
+         emit_bytes(0xc4, 0xe3, 0xf9, 0x16, 0x00, lane);
+      }
+
+      
+      
+      void emit_v128_const(v128_t value)
+      {
+         uint64_t low,high;
+         memcpy(&high, reinterpret_cast<const char*>(&value) + 8, 8);
+         memcpy(&low, &value, 8);
+         emit_i64_const(high);
+         emit_i64_const(low);
+      }
+
+      void emit_v128_shuffle(uint8_t lanes[16])
+      {
+         // general case:
+         // load lanes into %xmm0
+         // vmovups (%rsp), %ymm1 // AVX
+         // vpshufb %ymm0, %ymm1, %ymm0
+         // add $16, %rsp
+         // movups %xmm0, %(rsp)
+      }
+      
+      void emit_i8x16_extract_lane_s(uint8_t l)
+      {
+         // movups (%rsp)
+         // add $16, %rsp
+         // pextrb $l, %xmmN, %rax
+         // movsb %al, %eax 
+         // push %rax
+      }
+
+      void emit_i8x16_splat()
+      {
+         // vpbroadcastb (%rsp), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x78, 0x04, 0x24);
+         emit_sub(0x08, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_swizzle()
+      {
+         // test x>15 and saturate to 255
+         // mov x, z
+         // mov 15*, y
+         // pcmpgtb y, z
+         // por x, z
+         // pshufb z, x
+      }
+
+      void emit_i8x16_eq()
+      {
+         // pcmpeqb %xmmN, %xmmM
+      }
+      
       void emit_error() { unimplemented(); }
 
       // --------------- random  ------------------------
@@ -2106,6 +2369,43 @@ namespace eosio { namespace vm {
       const void* get_base_addr() const { return _code_segment_base; }
 
     private:
+
+      enum general_register { rax, rsp };
+      struct simple_memory_ref { general_register reg; };
+      inline friend simple_memory_ref operator*(general_register reg) { return { reg }; }
+      enum xmm_register { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6 };
+
+      void emit_add(uint32_t immediate, general_register dest) {
+         if(immediate <= 0xFFu && dest == rsp) {
+            emit_bytes(0x48, 0x83, 0xc4, immediate);
+         } else {
+            unimplemented();
+         }
+      }
+      
+      void emit_sub(uint32_t immediate, general_register dest) {
+         if(immediate <= 0xFFu && dest == rsp) {
+            emit_bytes(0x48, 0x83, 0xec, immediate);
+         } else {
+            unimplemented();
+         }
+      }
+
+      void emit_movups(simple_memory_ref mem, xmm_register reg) {
+         if(reg == xmm0 && mem.reg == rsp) {
+            emit_bytes(0x0f, 0x10, 0x04, 0x24);
+         } else {
+            unimplemented();
+         }
+      }
+      
+      void emit_movups(xmm_register reg, simple_memory_ref mem) {
+         if(reg == xmm0 && mem.reg == rsp) {
+            emit_bytes(0x0f, 0x11, 0x04, 0x24);
+         } else {
+            unimplemented();
+         }
+      }
 
       auto fixed_size_instr(std::size_t expected_bytes) {
          return scope_guard{[this, expected_code=code+expected_bytes](){
@@ -2198,8 +2498,10 @@ namespace eosio { namespace vm {
          }
       }
 
-      template<class... T>
-      void emit_load_impl(uint32_t offset, T... loadop) {
+      // pops an i32 wasm address off the stack
+      // adds offset and converts the result to
+      // a native address.  The result is in %rax.
+      void emit_pop_address(uint32_t offset) {
          // pop %rax
          emit_bytes(0x58);
          if (offset & 0x80000000) {
@@ -2215,6 +2517,11 @@ namespace eosio { namespace vm {
          }
          // add %rsi, %rax
          emit_bytes(0x48, 0x01, 0xf0);
+      }
+
+      template<class... T>
+      void emit_load_impl(uint32_t offset, T... loadop) {
+         emit_pop_address(offset);
          // from the caller
          emit_bytes(static_cast<uint8_t>(loadop)...);
          // push RAX
@@ -2225,21 +2532,7 @@ namespace eosio { namespace vm {
       void emit_store_impl(uint32_t offset, T... storeop) {
          // pop RCX
          emit_bytes(0x59);
-         // pop RAX
-         emit_bytes(0x58);
-         if (offset & 0x80000000) {
-            // mov $offset, %ecx
-            emit_bytes(0xb9);
-            emit_operand32(offset);
-            // add %rcx, %rax
-            emit_bytes(0x48, 0x01, 0xc8);
-         } else if (offset != 0) {
-            // add offset, %rax
-            emit_bytes(0x48, 0x05);
-            emit_operand32(offset);
-         }
-         // add %rsi, %rax
-         emit_bytes(0x48, 0x01, 0xf0);
+         emit_pop_address(offset);
          // from the caller
          emit_bytes(static_cast<uint8_t>(storeop)...);;
       }

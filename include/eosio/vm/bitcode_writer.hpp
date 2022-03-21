@@ -277,6 +277,23 @@ namespace eosio { namespace vm {
 #undef UNOP
 #undef OP
 
+#define MEM_OP(op_name, opcode)                                         \
+      void emit_ ## op_name(uint32_t offset, uint32_t alignment) { unimplemented(); }
+
+      EOS_VM_VEC_MEMORY_OPS(MEM_OP)
+
+#undef MEM_OP
+
+#define LANEMEM_OP(op_name, opcode)                                         \
+      void emit_ ## op_name(uint32_t offset, uint32_t alignment, uint8_t laneidx) { unimplemented(); }
+
+      EOS_VM_VEC_LANE_MEMORY_OPS(LANEMEM_OP)
+
+#undef LANEMEM_OP
+
+      void emit_i8x16_splat() { unimplemented(); }
+      void emit_v128_const(v128_t value) { unimplemented(); }
+
       void emit_error() { fb[op_index++] = error_t{}; }
       
       void fix_branch(uint32_t* branch, uint32_t target) { if(branch) *branch = _base_offset + target; }
@@ -306,6 +323,8 @@ namespace eosio { namespace vm {
       const void* get_base_addr() const { return _code_segment_base; }
 
     private:
+
+      static void unimplemented() { EOS_VM_ASSERT(false, wasm_parse_exception, "Sorry, not implemented."); }
 
       growable_allocator& _allocator;
       void * _code_segment_base;

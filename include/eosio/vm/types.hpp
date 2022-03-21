@@ -17,7 +17,7 @@
 #include <vector>
 
 namespace eosio { namespace vm {
-   enum types { i32 = 0x7f, i64 = 0x7e, f32 = 0x7d, f64 = 0x7c, anyfunc = 0x70, func = 0x60, pseudo = 0x40, ret_void };
+   enum types { i32 = 0x7f, i64 = 0x7e, f32 = 0x7d, f64 = 0x7c, v128 = 0x7b, anyfunc = 0x70, func = 0x60, pseudo = 0x40, ret_void };
 
    enum external_kind { Function = 0, Table = 1, Memory = 2, Global = 3 };
 
@@ -53,6 +53,8 @@ namespace eosio { namespace vm {
         lhs.return_count == rhs.return_count &&
         (lhs.return_count || lhs.return_type == rhs.return_type);
    }
+
+   struct v128_t { uint64_t low,high; };
 
    union expr_value {
       int32_t  i32;

@@ -212,6 +212,8 @@
    opcode_macro(f64_reinterpret_i64, 0xBF)
 #define EOS_VM_EXIT_OP(opcode_macro)            \
    opcode_macro(exit, 0xC0)
+#define EOS_VM_EXTENDED_OPS(opcode_macro)       \
+   opcode_macro(vector_prefix, 0xFD)
 #define EOS_VM_EMPTY_OPS(opcode_macro)          \
    opcode_macro(empty0xC1, 0xC1)                \
    opcode_macro(empty0xC2, 0xC2)                \
@@ -273,10 +275,179 @@
    opcode_macro(empty0xFA, 0xFA)                \
    opcode_macro(empty0xFB, 0xFB)                \
    opcode_macro(empty0xFC, 0xFC)                \
-   opcode_macro(empty0xFD, 0xFD)                \
    opcode_macro(empty0xFE, 0xFE)
 #define EOS_VM_ERROR_OPS(opcode_macro)          \
    opcode_macro(error, 0xFF)
+
+#define EOS_VM_VEC_MEMORY_OPS(opcode_macro)     \
+   opcode_macro(v128_load, 0)                   \
+   opcode_macro(v128_load8x8_s, 1)              \
+   opcode_macro(v128_load8x8_u, 2)              \
+   opcode_macro(v128_load16x4_s, 3)             \
+   opcode_macro(v128_load16x4_u, 4)             \
+   opcode_macro(v128_load32x2_s, 5)             \
+   opcode_macro(v128_load32x2_u, 6)             \
+   opcode_macro(v128_load8_splat, 7)            \
+   opcode_macro(v128_load16_splat, 8)           \
+   opcode_macro(v128_load32_splat, 9)           \
+   opcode_macro(v128_load64_splat, 10)          \
+   opcode_macro(v128_load32_zero, 92)           \
+   opcode_macro(v128_load64_zero, 93)           \
+   opcode_macro(v128_store, 11)
+#define EOS_VM_VEC_LANE_MEMORY_OPS(opcode_macro)\
+   opcode_macro(v128_load8_lane, 84)            \
+   opcode_macro(v128_load16_lane, 85)           \
+   opcode_macro(v128_load32_lane, 86)           \
+   opcode_macro(v128_load64_lane, 87)           \
+   opcode_macro(v128_store8_lane, 88)           \
+   opcode_macro(v128_store16_lane, 89)          \
+   opcode_macro(v128_store32_lane, 90)          \
+   opcode_macro(v128_store64_lane, 91)
+#define EOS_VM_VEC_CONSTANT_OPS(opcode_macro)   \
+   opcode_macro(v128_const, 12)
+#define EOS_VM_VEC_SHUFFLE_OPS(opcode_macro)    \
+   opcode_macro(v128_shuffle, 13)
+#define EOS_VM_VEC_LANE_OPS(opcode_macro)       \
+   opcode_macro(i8x16_extract_lane_s, 21)       \
+   opcode_macro(i8x16_extract_lane_u, 22)       \
+   opcode_macro(i8x16_replace_lane, 23)         \
+   opcode_macro(i16x8_extract_lane_s, 24)       \
+   opcode_macro(i16x8_extract_lane_u, 25)       \
+   opcode_macro(i16x8_replace_lane, 26)         \
+   opcode_macro(i32x4_extract_lane, 27)         \
+   opcode_macro(i32x4_replace_lane, 28)         \
+   opcode_macro(i64x2_extract_lane, 29)         \
+   opcode_macro(i64x2_replace_lane, 30)         \
+   opcode_macro(f32x4_extract_lane, 31)         \
+   opcode_macro(f32x4_replace_lane, 32)         \
+   opcode_macro(f64x2_extract_lane, 33)         \
+   opcode_macro(f64x2_replace_lane, 34)
+
+#define EOS_VM_VEC_NUMERIC_OPS(opcode_macro)    \
+   opcode_macro(i8x16_swizzle, 14)              \
+   opcode_macro(i8x16_splat, 15)                \
+   opcode_macro(i16x8_splat, 16)                \
+   opcode_macro(i32x4_splat, 17)                \
+   opcode_macro(i64x2_splat, 18)                \
+   opcode_macro(f32x4_splat, 19)                \
+   opcode_macro(f64x2_splat, 20)                \
+                                                \
+   opcode_macro(i8x16_eq  , 35)                 \
+   opcode_macro(i8x16_ne  , 36)                 \
+   opcode_macro(i8x16_lt_s, 37)                 \
+   opcode_macro(i8x16_lt_u, 38)                 \
+   opcode_macro(i8x16_gt_s, 39)                 \
+   opcode_macro(i8x16_gt_u, 40)                 \
+   opcode_macro(i8x16_le_s, 41)                 \
+   opcode_macro(i8x16_le_u, 42)                 \
+   opcode_macro(i8x16_ge_s, 43)                 \
+   opcode_macro(i8x16_ge_u, 44)                 \
+                                                \
+   opcode_macro(i16x8_eq  , 45)                 \
+   opcode_macro(i16x8_ne  , 46)                 \
+   opcode_macro(i16x8_lt_s, 47)                 \
+   opcode_macro(i16x8_lt_u, 48)                 \
+   opcode_macro(i16x8_gt_s, 49)                 \
+   opcode_macro(i16x8_gt_u, 50)                 \
+   opcode_macro(i16x8_le_s, 51)                 \
+   opcode_macro(i16x8_le_u, 52)                 \
+   opcode_macro(i16x8_ge_s, 53)                 \
+   opcode_macro(i16x8_ge_u, 54)                 \
+                                                \
+   opcode_macro(i32x4_eq  , 55)                 \
+   opcode_macro(i32x4_ne  , 56)                 \
+   opcode_macro(i32x4_lt_s, 57)                 \
+   opcode_macro(i32x4_lt_u, 58)                 \
+   opcode_macro(i32x4_gt_s, 59)                 \
+   opcode_macro(i32x4_gt_u, 60)                 \
+   opcode_macro(i32x4_le_s, 61)                 \
+   opcode_macro(i32x4_le_u, 62)                 \
+   opcode_macro(i32x4_ge_s, 63)                 \
+   opcode_macro(i32x4_ge_u, 64)                 \
+                                                \
+   opcode_macro(i64x2_eq  , 214)                \
+   opcode_macro(i64x2_ne  , 215)                \
+   opcode_macro(i64x2_lt_s, 216)                \
+   opcode_macro(i64x2_gt_s, 217)                \
+   opcode_macro(i64x2_le_s, 218)                \
+   opcode_macro(i64x2_ge_s, 219)                \
+                                                \
+   opcode_macro(f32x4_eq, 65)                   \
+   opcode_macro(f32x4_ne, 66)                   \
+   opcode_macro(f32x4_lt, 67)                   \
+   opcode_macro(f32x4_gt, 68)                   \
+   opcode_macro(f32x4_le, 69)                   \
+   opcode_macro(f32x4_ge, 70)                   \
+                                                \
+   opcode_macro(f64x2_eq, 71)                   \
+   opcode_macro(f64x2_ne, 72)                   \
+   opcode_macro(f64x2_lt, 73)                   \
+   opcode_macro(f64x2_gt, 74)                   \
+   opcode_macro(f64x2_le, 75)                   \
+   opcode_macro(f64x2_ge, 76)                   \
+                                                \
+   opcode_macro(v128_not, 77)                   \
+   opcode_macro(v128_and, 78)                   \
+   opcode_macro(v128_andnot, 79)                \
+   opcode_macro(v128_or, 80)                    \
+   opcode_macro(v128_xor, 81)                   \
+   opcode_macro(v128_bitselect, 82)             \
+   opcode_macro(v128_any_true, 83)              \
+                                                \
+   opcode_macro(i8x16_abs, 96)                  \
+   opcode_macro(i8x16_neg, 97)                  \
+   opcode_macro(i8x16_popcnt, 98)               \
+   opcode_macro(i8x16_all_true, 99)             \
+   opcode_macro(i8x16_bitmask, 100)             \
+   opcode_macro(i8x16_narrow_i16x8_s, 101)      \
+   opcode_macro(i8x16_narrow_i16x8_u, 102)      \
+   opcode_macro(i8x16_shl, 107)                 \
+   opcode_macro(i8x16_shr_s, 108)               \
+   opcode_macro(i8x16_shr_u, 109)               \
+   opcode_macro(i8x16_add, 110)                 \
+   opcode_macro(i8x16_add_sat_s, 111)           \
+   opcode_macro(i8x16_add_sat_u, 112)           \
+   opcode_macro(i8x16_sub, 113)                 \
+   opcode_macro(i8x16_sub_sat_s, 114)           \
+   opcode_macro(i8x16_sub_sat_u, 115)           \
+   opcode_macro(i8x16_min_s, 118)               \
+   opcode_macro(i8x16_min_u, 119)               \
+   opcode_macro(i8x16_max_s, 120)               \
+   opcode_macro(i8x16_max_u, 121)               \
+   opcode_macro(i8x16_avgr_u, 123)              \
+                                                \
+   opcode_macro(i16x8_extadd_pairwise_i8x16_s, 124)     \
+   opcode_macro(i16x8_extadd_pairwise_i8x16_u, 125)     \
+   opcode_macro(i16x8_abs, 128)                 \
+   opcode_macro(i16x8_neg, 129)                 \
+   opcode_macro(i16x8_q15mulr_sat_s, 130)       \
+   opcode_macro(i16x8_all_true, 131)            \
+   opcode_macro(i16x8_bitmask, 132)             \
+   opcode_macro(i16x8_narrow_i32x4_s, 133)      \
+   opcode_macro(i16x8_narrow_i32x4_u, 134)      \
+   opcode_macro(i16x8_extend_low_i8x16_s, 135)  \
+   opcode_macro(i16x8_extend_high_i8x16_s, 136) \
+   opcode_macro(i16x8_extend_low_i8x16_u, 137)  \
+   opcode_macro(i16x8_extend_high_i8x16_u, 138) \
+   opcode_macro(i16x8_shl, 139)                 \
+   opcode_macro(i16x8_shr_s, 140)               \
+   opcode_macro(i16x8_shr_u, 141)               \
+   opcode_macro(i16x8_add, 142)                 \
+   opcode_macro(i16x8_add_sat_s, 143)           \
+   opcode_macro(i16x8_add_sat_u, 144)           \
+   opcode_macro(i16x8_sub, 145)                 \
+   opcode_macro(i16x8_sub_sat_s, 146)           \
+   opcode_macro(i16x8_sub_sat_u, 147)           \
+   opcode_macro(i16x8_mul, 149)                 \
+   opcode_macro(i16x8_min_s, 150)               \
+   opcode_macro(i16x8_min_u, 151)               \
+   opcode_macro(i16x8_max_s, 152)               \
+   opcode_macro(i16x8_max_u, 153)               \
+   opcode_macro(i16x8_avgr_u, 155)              \
+   opcode_macro(i16x8_extmul_low_i8x16_s, 156)  \
+   opcode_macro(i16x8_extmul_high_i8x16_s, 157) \
+   opcode_macro(i16x8_extmul_low_i8x16_u, 158)  \
+   opcode_macro(i16x8_extmul_high_i8x16_u, 159) \
 
 /* clang-format on */
 

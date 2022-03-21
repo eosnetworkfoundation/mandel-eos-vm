@@ -20,7 +20,7 @@ BACKEND_TEST_CASE( "Testing wasm <e_locals_0_wasm>", "[e_locals_0_wasm_tests]" )
    auto code = read_wasm( std::string(wasm_directory) + "e_locals.0.wasm");
    backend_t bkend( code, &wa );
 
-   CHECK(bkend.call_with_return("env", "local-zero-init")->to_ui64() == UINT32_C(0));
+   CHECK(bkend.call_with_return("env", "local-zero-init")->to_ui64() == UINT64_C(0));
 }
 
 BACKEND_TEST_CASE( "Testing wasm <e_locals_1_wasm>", "[e_locals_1_wasm_tests]" ) {

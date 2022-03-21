@@ -1188,7 +1188,7 @@ string generate_test_call(picojson::object obj, string expected_t, string expect
       ss << "UINT32_C(" << expected_v << ")";
    } else if (expected_t == "i64") {
       ss << ")->to_ui64() == ";
-      ss << "UINT32_C(" << expected_v << ")";
+      ss << "UINT64_C(" << expected_v << ")";
    } else if (expected_t == "f32") {
       ss << ")->to_f32()) == ";
       ss << "UINT32_C(" << expected_v << ")";

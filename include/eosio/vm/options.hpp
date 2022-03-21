@@ -82,6 +82,8 @@ struct eosio_options {
    static constexpr std::uint32_t max_pages = 528; // 33 MiB
    static constexpr std::uint32_t max_call_depth = 251;
 
+   static constexpr bool enable_simd = false;
+   
    static constexpr bool forbid_export_mutable_globals = true;
    static constexpr bool allow_code_after_function_end = true;
    static constexpr bool allow_u32_limits_flags = true;
