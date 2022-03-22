@@ -2466,19 +2466,11 @@ namespace eosio { namespace vm {
          emit_movups(xmm0, *rsp);
       }
 
-      void emit_i8x16_splat()
-      {
-         // vpbroadcastb (%rsp), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x78, 0x04, 0x24);
-         emit_sub(0x08, rsp);
-         emit_movups(xmm0, *rsp);
-      }
-
       void emit_i8x16_swizzle()
       {
          // test x>15 and saturate to 255
-         movups(*rsp, xmm0);
-         add(16, rsp);
+         emit_movups(*rsp, xmm0);
+         emit_add(16, rsp);
          // mov $0x0F0F0F0F, %eax
          emit_bytes(0xb8);
          emit_operand32(0x0f0f0f0f);
@@ -2490,17 +2482,65 @@ namespace eosio { namespace vm {
          emit_bytes(0xc5, 0xf9, 0x64, 0xc9);
          // vpor %xmm0, %xmm1, %xmm1
          emit_bytes(0xc5, 0xf1, 0xeb, 0xc8);
-         movups(*rsp, xmm0);
+         emit_movups(*rsp, xmm0);
          // vpshufb %xmm0, %xmm1, %xmm0
          emit_bytes(0xc4, 0xe2, 0x71, 0x00, 0xc0);
-         movups(xmm0, *rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_splat()
+      {
+         // vpbroadcastb (%rsp), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x78, 0x04, 0x24);
+         emit_sub(0x08, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i16x8_splat()
+      {
+         // vpbroadcastw (%rsp), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x79, 0x04, 0x24);
+         emit_sub(0x08, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_splat()
+      {
+         // vpbroadcastd (%rsp), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x58, 0x04, 0x24);
+         emit_sub(0x08, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_splat()
+      {
+         // vpbroadcastq (%rsp), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x59, 0x04, 0x24);
+         emit_sub(0x08, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_f32x4_splat()
+      {
+         // vpbroadcastd (%rsp), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x58, 0x04, 0x24);
+         emit_sub(0x08, rsp);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_f64x2_splat()
+      {
+         // vpbroadcastq (%rsp), %xmm0
+         emit_bytes(0xc4, 0xe2, 0x79, 0x59, 0x04, 0x24);
+         emit_sub(0x08, rsp);
+         emit_movups(xmm0, *rsp);
       }
 
       void emit_i8x16_eq()
       {
          // pcmpeqb %xmmN, %xmmM
       }
-      
+
       void emit_error() { unimplemented(); }
 
       // --------------- random  ------------------------

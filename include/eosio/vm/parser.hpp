@@ -1355,14 +1355,50 @@ namespace eosio { namespace vm {
                      REPLACE_LANE_OP(f64x2_replace_lane, f64, 2)
 
 #undef EXTRACT_LANE_OP
-   
-                     case vec_opcodes::i8x16_splat: {
-                         check_in_bounds();
-                         code_writer.emit_i8x16_splat();
-                         op_stack.pop(types::i32);
-                         op_stack.push(types::v128);
-                         break;
-                     }
+
+#define INPUTS_0()
+#define INPUTS_1(t0) op_stack.pop(types::t0);
+#define INPUTS_2(t0, t1) op_stack.pop(types::t1); INPUTS_1(t0);
+
+#define OUTPUTS_0()
+#define OUTPUTS_1(t0) op_stack.push(types::t0);
+
+#define CAT_I(x, y) x ## y
+#define CAT(x, y) CAT_I(x, y)
+#define VA_SZ_EMPTY() ~,~,~,~
+#define VA_SZ_II(a0, a1, a2, a3, n, ...) n
+#define VA_SZ_I(...) VA_SZ_II(__VA_ARGS__, 0, 3, 2, 1, 0, ~)
+#define VA_SZ(...) VA_SZ_I( VA_SZ_EMPTY __VA_ARGS__ () )
+
+#define NUMERIC_OP(opcode, inputs, outputs)                             \
+                     case vec_opcodes::opcode: {                        \
+                        check_in_bounds();                              \
+                        CAT(INPUTS_, VA_SZ inputs) inputs               \
+                        CAT(OUTPUTS_, VA_SZ outputs) outputs            \
+                        code_writer.emit_ ## opcode();                  \
+                     } break;
+
+                     NUMERIC_OP(i8x16_swizzle, (v128, v128), (v128))
+                     NUMERIC_OP(i8x16_splat, (i32), (v128))
+                     NUMERIC_OP(i16x8_splat, (i32), (v128))
+                     NUMERIC_OP(i32x4_splat, (i32), (v128))
+                     NUMERIC_OP(i64x2_splat, (i64), (v128))
+                     NUMERIC_OP(f32x4_splat, (f32), (v128))
+                     NUMERIC_OP(f64x2_splat, (f64), (v128))
+
+#undef NUMERIC_OP
+#undef VA_SZ
+#undef VA_SZ_I
+#undef VA_SZ_II
+#undef VA_SZ_EMPTY
+#undef CAT
+#undef CAT_I
+#undef OUTPUTS_1
+#undef OUTPUTS_0
+#undef INPUTS_2
+#undef INPUTS_1
+#undef INPUTS_0
+
                      default: EOS_VM_ASSERT(false, wasm_parse_exception, "Illegal instruction");
                   }
                } break;

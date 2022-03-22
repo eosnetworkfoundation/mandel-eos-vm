@@ -301,7 +301,12 @@ namespace eosio { namespace vm {
 
 #undef LANE_OP
 
-      void emit_i8x16_splat() { unimplemented(); }
+#define NUMERIC_OP(op_name, opcode)                     \
+      void emit_ ## op_name() { unimplemented(); }
+
+      EOS_VM_VEC_NUMERIC_OPS(NUMERIC_OP)
+
+#undef NUMERIC_OP
 
       void emit_error() { fb[op_index++] = error_t{}; }
       

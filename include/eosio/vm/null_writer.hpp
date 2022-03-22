@@ -208,8 +208,8 @@ class null_writer {
    void emit_v128_load16_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
    void emit_v128_load32_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
    void emit_v128_load64_splat(uint32_t /*offset*/, uint32_t /*alignment*/) {}
-   void emit_v128_load32_zero(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
-   void emit_v128_load64_zero(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
+   void emit_v128_load32_zero(uint32_t /*offset*/, uint32_t /*alignment*/) {}
+   void emit_v128_load64_zero(uint32_t /*offset*/, uint32_t /*alignment*/) {}
    void emit_v128_store(uint32_t /*offset*/, uint32_t /*alignment*/) {}
    void emit_v128_load8_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
    void emit_v128_load16_lane(uint32_t /*offset*/, uint32_t /*alignment*/, uint8_t /*laneidx*/) {}
@@ -235,7 +235,13 @@ class null_writer {
    void emit_f32x4_replace_lane(uint8_t /*laneidx*/) {}
    void emit_f64x2_extract_lane(uint8_t /*laneidx*/) {}
    void emit_f64x2_replace_lane(uint8_t /*laneidx*/) {}
+   void emit_i8x16_swizzle() {}
    void emit_i8x16_splat() {}
+   void emit_i16x8_splat() {}
+   void emit_i32x4_splat() {}
+   void emit_i64x2_splat() {}
+   void emit_f32x4_splat() {}
+   void emit_f64x2_splat() {}
 
    void fix_branch(branch_t, label_t) {}
    void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}
