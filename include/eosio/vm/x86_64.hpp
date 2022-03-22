@@ -2557,35 +2557,49 @@ namespace eosio { namespace vm {
       }
 
       void emit_i8x16_lt_s() {
-         emit_v128_irelop_s(0x64, false, false);
+         emit_v128_irelop_cmp(VPCMPGTB, true, false);
       }
 
       void emit_i8x16_lt_u() {
-         emit_v128_irelop_u(false, false);
+         emit_v128_irelop_minmax(VPMINUB, false);
       }
 
       void emit_i8x16_gt_s() {
-         emit_v128_irelop_s(0x64, true, false);
+         emit_v128_irelop_cmp(VPCMPGTB, false, false);
       }
 
       void emit_i8x16_gt_u() {
-         emit_v128_irelop_u(true, false);
+         emit_v128_irelop_minmax(VPMAXUB, false);
       }
 
       void emit_i8x16_le_s() {
-         emit_v128_irelop_s(0x64, true, true);
+         emit_v128_irelop_cmp(VPCMPGTB, false, true);
       }
 
       void emit_i8x16_le_u() {
-         emit_v128_irelop_u(true, true);
+         emit_v128_irelop_minmax(VPMAXUB, true);
       }
 
       void emit_i8x16_ge_s() {
-         emit_v128_irelop_s(0x64, false, true);
+         emit_v128_irelop_cmp(VPCMPGTB, true, true);
       }
 
       void emit_i8x16_ge_u() {
-         emit_v128_irelop_u(false, true);
+         emit_v128_irelop_minmax(VPMINUB, true);
+      }
+
+      // i8x16 compare
+
+      void emit_i16x8_eq() {
+         emit_v128_irelop_cmp(VPCMPEQW, true, false);
+      }
+
+      void emit_i16x8_ne() {
+         emit_v128_irelop_cmp(VPCMPEQW, true, true);
+      }
+
+      void emit_i16x8_lt_s() {
+         emit_v128_irelop_cmp(VPCMPGTW, true, false);
       }
 
       void emit_error() { unimplemented(); }
@@ -2711,21 +2725,65 @@ namespace eosio { namespace vm {
          // vpcmpeqb %reg, %reg, %reg
          emit_VEX_128_66_0F_WIG(0x74, reg, reg, reg);
       }
-      
-      void emit_VEX_128_66_0F_WIG(uint8_t opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
-         if(src1.reg == rsp) {
-            emit_bytes(0xc5, 0x1 | ((src2 ^ 0xf) << 3) | (((dest & 8) ^ 8) << 4), opcode, 0x04 | ((dest & 7) << 3), 0x24);
+
+      struct VEX_128_66_0F_W0 { uint8_t opcode; };
+      using  VEX_128_66_0F = VEX_128_66_0F_W0;
+      using  VEX_128_66_0F_WIG = VEX_128_66_0F_W0;
+      struct VEX_128_66_0F38_W0 { uint8_t opcode; };
+      using VEX_128_66_0F38_WIG = VEX_128_66_0F38_W0;
+
+      static constexpr auto VPCMPEQB = VEX_128_66_0F_WIG{0x74};
+      static constexpr auto VPCMPEQW = VEX_128_66_0F_WIG{0x75};
+      static constexpr auto VPCMPGTB = VEX_128_66_0F_WIG{0x64};
+      static constexpr auto VPCMPGTW = VEX_128_66_0F_WIG{0x65};
+      static constexpr auto VPMAXUB = VEX_128_66_0F{0xde};
+      static constexpr auto VPMINUB = VEX_128_66_0F{0xda};
+      static constexpr auto VPSUBUSB = VEX_128_66_0F_WIG{0xd8};
+      static constexpr auto VPSUBUSW = VEX_128_66_0F_WIG{0xd9};
+
+      enum VEX_mmmm { mmmm_none, mmmm_0F, mmmm_0F38, mmmm_0F3A };
+      enum VEX_pp { pp_none, pp_66, pp_F3, pp_F2 };
+
+      void emit_VEX_prefix(bool R, bool X, bool B, VEX_mmmm mmmm, bool W, int vvvv, bool L, VEX_pp pp) {
+         if(X || B || mmmm || W) {
+            emit_bytes(0xc4, (!R << 7) | (!X << 6) | (!B << 5) | mmmm, (W << 7) | ((vvvv ^ 0xF) << 3) | (L << 2) | pp);
          } else {
-            unimplemented();
+            emit_bytes(0xc5, (!R << 7) | (vvvv << 3) | (L << 2) | pp);
          }
+      }
+
+      void emit_modrm_sib_disp(simple_memory_ref mem, int reg) {
+         if(mem.reg == rsp) {
+            emit_bytes(((reg & 7) << 3) | 0x04, 0x24);
+         } else if(mem.reg == rbp) {
+            emit_bytes(0x45 | ((reg & 7) << 3), 0x00);
+         } else {
+            emit_bytes(((reg & 7) << 3) | (mem.reg & 7));
+         }
+      }
+
+      void emit_modrm_sib_disp(int r_m, int reg) {
+         emit_bytes(0xc0 | ((reg & 7) << 3) | (r_m & 7));
+      }
+
+      void emit(VEX_128_66_0F_W0 opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src1.reg & 8, mmmm_0F, false, src2, false, pp_66);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src1, dest);
+      }
+
+      void emit(VEX_128_66_0F_W0 opcode, xmm_register src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src1 & 8, mmmm_0F, false, src2, false, pp_66);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src1, dest);
+      }
+
+      void emit_VEX_128_66_0F_WIG(uint8_t opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
+         emit(VEX_128_66_0F_WIG{opcode}, src1, src2, dest);
       }
       
       void emit_VEX_128_66_0F_WIG(uint8_t opcode, xmm_register src1, xmm_register src2, xmm_register dest) {
-         if(src1 < 8) {
-            emit_bytes(0xc5, 0x1 | ((src2 ^ 0xf) << 3) | (((dest & 8) ^ 8) << 4), opcode, 0xc0 | ((dest & 7) << 3) | (src1 & 7));
-         } else {
-            unimplemented();
-         }
+         emit(VEX_128_66_0F_WIG{opcode}, src1, src2, dest);
       }
 
       auto fixed_size_instr(std::size_t expected_bytes) {
@@ -2889,37 +2947,57 @@ namespace eosio { namespace vm {
          emit_bytes(0x52);
       }
 
-      void emit_v128_irelop_u(bool switch_params, bool flip_result) {
+      template<typename Op>
+      void emit_v128_irelop_subsat(Op opcode, bool switch_params, bool flip_result) {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
          if(switch_params) {
             emit_vmovups(*rsp, xmm1);
             // vpsubusb %xmm0, %xmm1, %xmm0
-            emit_VEX_128_66_0F_WIG(0xd8, xmm0, xmm1, xmm0);
+            emit(opcode, xmm0, xmm1, xmm0);
          } else {
             // vpsubusb (%rsp), %xmm0, %xmm0
-            emit_VEX_128_66_0F_WIG(0xd8, *rsp, xmm0, xmm0);
+            emit(opcode, *rsp, xmm0, xmm0);
          }
          emit_const_zero(xmm1);
          // vpcmpeqb %xmm1, %xmm0, %xmm0
-         emit_VEX_128_66_0F_WIG(0x74, xmm1, xmm0, xmm0);
+         emit(VPCMPEQB, xmm1, xmm0, xmm0);
          if(!flip_result) {
             // vpcmpeqb %xmm1, %xmm0, %xmm0
-            emit_VEX_128_66_0F_WIG(0x74, xmm1, xmm0, xmm0);
+            emit(VPCMPEQB, xmm1, xmm0, xmm0);
          }
          emit_vmovups(xmm0, *rsp);
       }
 
-      void emit_v128_irelop_s(uint8_t opcode, bool switch_params, bool flip_result) {
+      // !(op(a,b) == b)
+      // max -> gt
+      // min -> lt
+      template<typename Op>
+      void emit_v128_irelop_minmax(Op opcode, bool flip_result) {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
-         if(switch_params) {
+         // vp[min/max]us[b/w/d/q] (%rsp), xmm0, xmm1
+         emit(opcode, *rsp, xmm0, xmm1);
+         emit(VPCMPEQB, xmm0, xmm1, xmm0);
+         if(!flip_result) {
+            emit_const_zero(xmm1);
+            emit(VPCMPEQB, xmm1, xmm0, xmm0);
+         }
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      // Note: for commutative functions switch_params=true is more efficient
+      template<typename Op>
+      void emit_v128_irelop_cmp(Op opcode, bool switch_params, bool flip_result) {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         if(!switch_params) {
             emit_vmovups(*rsp, xmm1);
-            // vpcmpgtb %xmm0, %xmm1, %xmm0
-            emit_VEX_128_66_0F_WIG(opcode, xmm0, xmm1, xmm0);
+            // OP %xmm0, %xmm1, %xmm0
+            emit(opcode, xmm0, xmm1, xmm0);
          } else {
-            // vpcmpgtb *rsp, %xmm0, %xmm0
-            emit_VEX_128_66_0F_WIG(opcode, *rsp, xmm0, xmm0);
+            // OP *rsp, %xmm0, %xmm0
+            emit(opcode, *rsp, xmm0, xmm0);
          }
          if(flip_result) {
             emit_const_ones(xmm1);
