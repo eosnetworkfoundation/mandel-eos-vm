@@ -2538,7 +2538,54 @@ namespace eosio { namespace vm {
 
       void emit_i8x16_eq()
       {
-         // pcmpeqb %xmmN, %xmmM
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpcmpeqb (%rsp), %xmm0, %xmm0
+         emit_VEX_128_66_0F_WIG(0x74, *rsp, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_ne()
+      {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         // vpcmpeqb (%rsp), %xmm0, %xmm0
+         emit_VEX_128_66_0F_WIG(0x74, *rsp, xmm0, xmm0);
+         emit_const_ones(xmm1);
+         emit_vpxor(xmm1, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_lt_s() {
+         emit_v128_irelop_s(0x64, false, false);
+      }
+
+      void emit_i8x16_lt_u() {
+         emit_v128_irelop_u(false, false);
+      }
+
+      void emit_i8x16_gt_s() {
+         emit_v128_irelop_s(0x64, true, false);
+      }
+
+      void emit_i8x16_gt_u() {
+         emit_v128_irelop_u(true, false);
+      }
+
+      void emit_i8x16_le_s() {
+         emit_v128_irelop_s(0x64, true, true);
+      }
+
+      void emit_i8x16_le_u() {
+         emit_v128_irelop_u(true, true);
+      }
+
+      void emit_i8x16_ge_s() {
+         emit_v128_irelop_s(0x64, false, true);
+      }
+
+      void emit_i8x16_ge_u() {
+         emit_v128_irelop_u(false, true);
       }
 
       void emit_error() { unimplemented(); }
@@ -2574,10 +2621,16 @@ namespace eosio { namespace vm {
 
     private:
 
-      enum general_register { rax, rsp };
+      enum general_register {
+          rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
+          r8, r9, r10, r11, r12, r13, r14, r15
+      };
       struct simple_memory_ref { general_register reg; };
       inline friend simple_memory_ref operator*(general_register reg) { return { reg }; }
-      enum xmm_register { xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6 };
+      enum xmm_register {
+          xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,
+          xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
+      };
 
       void emit_add(uint32_t immediate, general_register dest) {
          if(immediate <= 0xFFu && dest == rsp) {
@@ -2612,8 +2665,11 @@ namespace eosio { namespace vm {
       }
       
       void emit_movups(simple_memory_ref mem, xmm_register reg) {
-         if(reg == xmm0 && mem.reg == rsp) {
-            emit_bytes(0x0f, 0x10, 0x04, 0x24);
+         if(mem.reg == rsp) {
+            if(reg >= 8) {
+               emit_bytes(0x44);
+            }
+            emit_bytes(0x0f, 0x10, 0x04 | ((reg & 7) << 3), 0x24);
          } else {
             unimplemented();
          }
@@ -2622,6 +2678,51 @@ namespace eosio { namespace vm {
       void emit_movups(xmm_register reg, simple_memory_ref mem) {
          if(reg == xmm0 && mem.reg == rsp) {
             emit_bytes(0x0f, 0x11, 0x04, 0x24);
+         } else {
+            unimplemented();
+         }
+      }
+      
+      void emit_vmovups(simple_memory_ref mem, xmm_register reg) {
+         if(mem.reg == rsp) {
+            emit_bytes(0xc5, 0x78 | (((reg & 8) ^ 8) << 4), 0x10, 0x04 | ((reg & 7) << 3), 0x24);
+         } else {
+            unimplemented();
+         }
+      }
+
+      void emit_vmovups(xmm_register reg, simple_memory_ref mem) {
+         if(mem.reg == rsp) {
+            emit_bytes(0xc5, 0x78 | (((reg & 8) ^ 8) << 4), 0x11, 0x04 | ((reg & 7) << 3), 0x24);
+         } else {
+            unimplemented();
+         }
+      }
+
+      void emit_vpxor(xmm_register src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_128_66_0F_WIG(0xef, src1, src2, dest);
+      }
+
+      void emit_const_zero(xmm_register reg) {
+         emit_vpxor(reg, reg, reg);
+      }
+
+      void emit_const_ones(xmm_register reg) {
+         // vpcmpeqb %reg, %reg, %reg
+         emit_VEX_128_66_0F_WIG(0x74, reg, reg, reg);
+      }
+      
+      void emit_VEX_128_66_0F_WIG(uint8_t opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
+         if(src1.reg == rsp) {
+            emit_bytes(0xc5, 0x1 | ((src2 ^ 0xf) << 3) | (((dest & 8) ^ 8) << 4), opcode, 0x04 | ((dest & 7) << 3), 0x24);
+         } else {
+            unimplemented();
+         }
+      }
+      
+      void emit_VEX_128_66_0F_WIG(uint8_t opcode, xmm_register src1, xmm_register src2, xmm_register dest) {
+         if(src1 < 8) {
+            emit_bytes(0xc5, 0x1 | ((src2 ^ 0xf) << 3) | (((dest & 8) ^ 8) << 4), opcode, 0xc0 | ((dest & 7) << 3) | (src1 & 7));
          } else {
             unimplemented();
          }
@@ -2786,6 +2887,45 @@ namespace eosio { namespace vm {
          emit_bytes(0x0f, opcode, 0xc2);
          // pushq %rdx
          emit_bytes(0x52);
+      }
+
+      void emit_v128_irelop_u(bool switch_params, bool flip_result) {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         if(switch_params) {
+            emit_vmovups(*rsp, xmm1);
+            // vpsubusb %xmm0, %xmm1, %xmm0
+            emit_VEX_128_66_0F_WIG(0xd8, xmm0, xmm1, xmm0);
+         } else {
+            // vpsubusb (%rsp), %xmm0, %xmm0
+            emit_VEX_128_66_0F_WIG(0xd8, *rsp, xmm0, xmm0);
+         }
+         emit_const_zero(xmm1);
+         // vpcmpeqb %xmm1, %xmm0, %xmm0
+         emit_VEX_128_66_0F_WIG(0x74, xmm1, xmm0, xmm0);
+         if(!flip_result) {
+            // vpcmpeqb %xmm1, %xmm0, %xmm0
+            emit_VEX_128_66_0F_WIG(0x74, xmm1, xmm0, xmm0);
+         }
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_v128_irelop_s(uint8_t opcode, bool switch_params, bool flip_result) {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         if(switch_params) {
+            emit_vmovups(*rsp, xmm1);
+            // vpcmpgtb %xmm0, %xmm1, %xmm0
+            emit_VEX_128_66_0F_WIG(opcode, xmm0, xmm1, xmm0);
+         } else {
+            // vpcmpgtb *rsp, %xmm0, %xmm0
+            emit_VEX_128_66_0F_WIG(opcode, *rsp, xmm0, xmm0);
+         }
+         if(flip_result) {
+            emit_const_ones(xmm1);
+            emit_vpxor(xmm1, xmm0, xmm0);
+         }
+         emit_vmovups(xmm0, *rsp);
       }
 
       template<typename T, typename U>

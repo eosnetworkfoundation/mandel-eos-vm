@@ -242,6 +242,16 @@ class null_writer {
    void emit_i64x2_splat() {}
    void emit_f32x4_splat() {}
    void emit_f64x2_splat() {}
+   void emit_i8x16_eq() {}
+   void emit_i8x16_ne() {}
+   void emit_i8x16_lt_s() {}
+   void emit_i8x16_lt_u() {}
+   void emit_i8x16_gt_s() {}
+   void emit_i8x16_gt_u() {}
+   void emit_i8x16_le_s() {}
+   void emit_i8x16_le_u() {}
+   void emit_i8x16_ge_s() {}
+   void emit_i8x16_ge_u() {}
 
    void fix_branch(branch_t, label_t) {}
    void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}
