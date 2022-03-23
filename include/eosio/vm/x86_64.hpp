@@ -2461,7 +2461,7 @@ namespace eosio { namespace vm {
       {
          emit_pop(rax);
          emit_movups(*rsp, xmm0);
-         // vpinsrq $l, %eax, %xmm0, %xmm0
+         // vpinsrq $l, %rax, %xmm0, %xmm0
          emit_bytes(0xc4, 0xe3, 0xf9, 0x22, 0xc0, l);
          emit_movups(xmm0, *rsp);
       }
@@ -2602,6 +2602,36 @@ namespace eosio { namespace vm {
          emit_v128_irelop_cmp(VPCMPGTW, true, false);
       }
 
+      void emit_i16x8_lt_u() {
+         emit_v128_irelop_minmax(VPMINUW, false);
+      }
+
+      void emit_i16x8_gt_s() {
+         emit_v128_irelop_cmp(VPCMPGTW, false, false);
+      }
+
+      void emit_i16x8_gt_u() {
+         emit_v128_irelop_minmax(VPMAXUW, false);
+      }
+
+      void emit_i16x8_le_s() {
+         emit_v128_irelop_cmp(VPCMPGTW, false, true);
+      }
+
+      void emit_i16x8_le_u() {
+         emit_v128_irelop_minmax(VPMAXUW, true);
+      }
+
+      void emit_i16x8_ge_s() {
+         emit_v128_irelop_cmp(VPCMPGTW, true, true);
+      }
+
+      void emit_i16x8_ge_u() {
+         emit_v128_irelop_minmax(VPMINUW, true);
+      }
+
+      // i32x4 compare
+
       void emit_error() { unimplemented(); }
 
       // --------------- random  ------------------------
@@ -2726,23 +2756,28 @@ namespace eosio { namespace vm {
          emit_VEX_128_66_0F_WIG(0x74, reg, reg, reg);
       }
 
-      struct VEX_128_66_0F_W0 { uint8_t opcode; };
-      using  VEX_128_66_0F = VEX_128_66_0F_W0;
-      using  VEX_128_66_0F_WIG = VEX_128_66_0F_W0;
-      struct VEX_128_66_0F38_W0 { uint8_t opcode; };
+      enum VEX_mmmm { mmmm_none, mmmm_0F, mmmm_0F38, mmmm_0F3A };
+      enum VEX_pp { pp_none, pp_66, pp_F3, pp_F2 };
+
+      template<int SZ, VEX_pp PP, VEX_mmmm MMMM, int W>
+      struct VEX { uint8_t opcode; };
+      using VEX_128_66_0F_W0 = VEX<128, pp_66, mmmm_0F, 0>;
+      using VEX_128_66_0F = VEX_128_66_0F_W0;
+      using VEX_128_66_0F_WIG = VEX_128_66_0F_W0;
+      using VEX_128_66_0F38_W0 = VEX<128, pp_66, mmmm_0F38, 0>;
       using VEX_128_66_0F38_WIG = VEX_128_66_0F38_W0;
+      using VEX_128_66_0F38 = VEX_128_66_0F38_W0;
 
       static constexpr auto VPCMPEQB = VEX_128_66_0F_WIG{0x74};
       static constexpr auto VPCMPEQW = VEX_128_66_0F_WIG{0x75};
       static constexpr auto VPCMPGTB = VEX_128_66_0F_WIG{0x64};
       static constexpr auto VPCMPGTW = VEX_128_66_0F_WIG{0x65};
       static constexpr auto VPMAXUB = VEX_128_66_0F{0xde};
+      static constexpr auto VPMAXUW = VEX_128_66_0F38{0x3e};
       static constexpr auto VPMINUB = VEX_128_66_0F{0xda};
+      static constexpr auto VPMINUW = VEX_128_66_0F38{0x3a};
       static constexpr auto VPSUBUSB = VEX_128_66_0F_WIG{0xd8};
       static constexpr auto VPSUBUSW = VEX_128_66_0F_WIG{0xd9};
-
-      enum VEX_mmmm { mmmm_none, mmmm_0F, mmmm_0F38, mmmm_0F3A };
-      enum VEX_pp { pp_none, pp_66, pp_F3, pp_F2 };
 
       void emit_VEX_prefix(bool R, bool X, bool B, VEX_mmmm mmmm, bool W, int vvvv, bool L, VEX_pp pp) {
          if(X || B || mmmm || W) {
@@ -2766,6 +2801,21 @@ namespace eosio { namespace vm {
          emit_bytes(0xc0 | ((reg & 7) << 3) | (r_m & 7));
       }
 
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src1.reg & 8, mmmm, W, src2, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src1, dest);
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, xmm_register src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src1 & 8, mmmm, W, src2, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src1, dest);
+      }
+
+#if 0
       void emit(VEX_128_66_0F_W0 opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
          emit_VEX_prefix(dest & 8, false, src1.reg & 8, mmmm_0F, false, src2, false, pp_66);
          emit_bytes(opcode.opcode);
@@ -2777,6 +2827,7 @@ namespace eosio { namespace vm {
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src1, dest);
       }
+#endif
 
       void emit_VEX_128_66_0F_WIG(uint8_t opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
          emit(VEX_128_66_0F_WIG{opcode}, src1, src2, dest);

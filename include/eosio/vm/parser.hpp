@@ -1397,6 +1397,17 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(i8x16_ge_s, (v128, v128), (v128))
                      NUMERIC_OP(i8x16_ge_u, (v128, v128), (v128))
 
+                     NUMERIC_OP(i16x8_eq, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_ne, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_lt_s, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_lt_u, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_gt_s, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_gt_u, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_le_s, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_le_u, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_ge_s, (v128, v128), (v128))
+                     NUMERIC_OP(i16x8_ge_u, (v128, v128), (v128))
+
 #undef NUMERIC_OP
 #undef VA_SZ
 #undef VA_SZ_I
