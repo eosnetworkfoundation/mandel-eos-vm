@@ -448,6 +448,32 @@
    opcode_macro(i16x8_extmul_high_i8x16_s, 157) \
    opcode_macro(i16x8_extmul_low_i8x16_u, 158)  \
    opcode_macro(i16x8_extmul_high_i8x16_u, 159) \
+                                                \
+   opcode_macro(i32x4_extadd_pairwise_i16x8_s, 126)     \
+   opcode_macro(i32x4_extadd_pairwise_i16x8_u, 127)     \
+   opcode_macro(i32x4_abs, 160)                 \
+   opcode_macro(i32x4_neg, 161)                 \
+   opcode_macro(i32x4_all_true, 163)            \
+   opcode_macro(i32x4_bitmask, 163)             \
+   opcode_macro(i32x4_extend_low_i16x8_s, 167)  \
+   opcode_macro(i32x4_extend_high_i16x8_s, 168) \
+   opcode_macro(i32x4_extend_low_i16x8_u, 169)  \
+   opcode_macro(i32x4_extend_high_i16x8_u, 170) \
+   opcode_macro(i32x4_shl, 171)                 \
+   opcode_macro(i32x4_shr_s, 172)               \
+   opcode_macro(i32x4_shr_u, 173)               \
+   opcode_macro(i32x4_add, 174)                 \
+   opcode_macro(i32x4_sub, 177)                 \
+   opcode_macro(i32x4_mul, 181)                 \
+   opcode_macro(i32x4_min_s, 182)               \
+   opcode_macro(i32x4_min_u, 183)               \
+   opcode_macro(i32x4_max_s, 184)               \
+   opcode_macro(i32x4_max_u, 185)               \
+   opcode_macro(i32x4_dot_i16x8_s, 186)         \
+   opcode_macro(i32x4_extmul_low_i16x8_s, 188)  \
+   opcode_macro(i32x4_extmul_high_i16x8_s, 189) \
+   opcode_macro(i32x4_extmul_low_i16x8_u, 190)  \
+   opcode_macro(i32x4_extmul_high_i16x8_u, 191)
 
 /* clang-format on */
 

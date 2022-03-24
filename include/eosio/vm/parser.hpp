@@ -1359,6 +1359,7 @@ namespace eosio { namespace vm {
 #define INPUTS_0()
 #define INPUTS_1(t0) op_stack.pop(types::t0);
 #define INPUTS_2(t0, t1) op_stack.pop(types::t1); INPUTS_1(t0);
+#define INPUTS_3(t0, t1, t2) op_stack.pop(types::t2); INPUTS_2(t1, t0);
 
 #define OUTPUTS_0()
 #define OUTPUTS_1(t0) op_stack.push(types::t0);
@@ -1408,6 +1409,49 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(i16x8_ge_s, (v128, v128), (v128))
                      NUMERIC_OP(i16x8_ge_u, (v128, v128), (v128))
 
+                     NUMERIC_OP(i32x4_eq, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_ne, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_lt_s, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_lt_u, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_gt_s, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_gt_u, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_le_s, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_le_u, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_ge_s, (v128, v128), (v128))
+                     NUMERIC_OP(i32x4_ge_u, (v128, v128), (v128))
+
+                     NUMERIC_OP(i64x2_eq, (v128, v128), (v128))
+                     NUMERIC_OP(i64x2_ne, (v128, v128), (v128))
+                     NUMERIC_OP(i64x2_lt_s, (v128, v128), (v128))
+                     NUMERIC_OP(i64x2_gt_s, (v128, v128), (v128))
+                     NUMERIC_OP(i64x2_le_s, (v128, v128), (v128))
+                     NUMERIC_OP(i64x2_ge_s, (v128, v128), (v128))
+
+                     // NUMERIC_OP(f32x4_eq, (v128, v128), (v128))
+                     // NUMERIC_OP(f32x4_ne, (v128, v128), (v128))
+                     // NUMERIC_OP(f32x4_lt, (v128, v128), (v128))
+                     // NUMERIC_OP(f32x4_gt, (v128, v128), (v128))
+                     // NUMERIC_OP(f32x4_le, (v128, v128), (v128))
+                     // NUMERIC_OP(f32x4_ge, (v128, v128), (v128))
+
+                     // NUMERIC_OP(f64x2_eq, (v128, v128), (v128))
+                     // NUMERIC_OP(f64x2_ne, (v128, v128), (v128))
+                     // NUMERIC_OP(f64x2_lt, (v128, v128), (v128))
+                     // NUMERIC_OP(f64x2_gt, (v128, v128), (v128))
+                     // NUMERIC_OP(f64x2_le, (v128, v128), (v128))
+                     // NUMERIC_OP(f64x2_ge, (v128, v128), (v128))
+
+                     NUMERIC_OP(v128_not, (v128), (v128));
+                     NUMERIC_OP(v128_and, (v128, v128), (v128));
+                     NUMERIC_OP(v128_andnot, (v128, v128), (v128));
+                     NUMERIC_OP(v128_or, (v128, v128), (v128));
+                     NUMERIC_OP(v128_xor, (v128, v128), (v128));
+                     NUMERIC_OP(v128_bitselect, (v128, v128, v128), (v128));
+                     NUMERIC_OP(v128_any_true, (v128), (i32));
+
+                     NUMERIC_OP(i8x16_abs, (v128), (v128));
+                     NUMERIC_OP(i8x16_neg, (v128), (v128));
+                     NUMERIC_OP(i8x16_popcnt, (v128), (v128));
 #undef NUMERIC_OP
 #undef VA_SZ
 #undef VA_SZ_I
