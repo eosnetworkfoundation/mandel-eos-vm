@@ -1452,6 +1452,25 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(i8x16_abs, (v128), (v128));
                      NUMERIC_OP(i8x16_neg, (v128), (v128));
                      NUMERIC_OP(i8x16_popcnt, (v128), (v128));
+                     NUMERIC_OP(i8x16_all_true, (v128), (i32));
+                     NUMERIC_OP(i8x16_bitmask, (v128), (i32));
+                     NUMERIC_OP(i8x16_narrow_i16x8_s, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_narrow_i16x8_u, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_shl, (v128, i32), (v128));
+                     NUMERIC_OP(i8x16_shr_s, (v128, i32), (v128));
+                     NUMERIC_OP(i8x16_shr_u, (v128, i32), (v128));
+                     NUMERIC_OP(i8x16_add, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_add_sat_s, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_add_sat_u, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_sub, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_sub_sat_s, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_sub_sat_u, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_min_s, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_min_u, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_max_s, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_max_u, (v128, v128), (v128));
+                     NUMERIC_OP(i8x16_avgr_u, (v128, v128), (v128));
+
 #undef NUMERIC_OP
 #undef VA_SZ
 #undef VA_SZ_I

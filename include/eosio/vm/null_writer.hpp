@@ -278,6 +278,46 @@ class null_writer {
    void emit_i64x2_gt_s() {}
    void emit_i64x2_le_s() {}
    void emit_i64x2_ge_s() {}
+   void emit_f32x4_eq() {}
+   void emit_f32x4_ne() {}
+   void emit_f32x4_lt() {}
+   void emit_f32x4_gt() {}
+   void emit_f32x4_le() {}
+   void emit_f32x4_ge() {}
+   void emit_f64x2_eq() {}
+   void emit_f64x2_ne() {}
+   void emit_f64x2_lt() {}
+   void emit_f64x2_gt() {}
+   void emit_f64x2_le() {}
+   void emit_f64x2_ge() {}
+   void emit_v128_not() {}
+   void emit_v128_and() {}
+   void emit_v128_andnot() {}
+   void emit_v128_or() {}
+   void emit_v128_xor() {}
+   void emit_v128_bitselect() {}
+   void emit_v128_any_true() {}
+   void emit_i8x16_abs() {}
+   void emit_i8x16_neg() {}
+   void emit_i8x16_popcnt() {}
+   void emit_i8x16_all_true() {}
+   void emit_i8x16_bitmask() {}
+   void emit_i8x16_narrow_i16x8_s() {}
+   void emit_i8x16_narrow_i16x8_u() {}
+   void emit_i8x16_shl() {}
+   void emit_i8x16_shr_s() {}
+   void emit_i8x16_shr_u() {}
+   void emit_i8x16_add() {}
+   void emit_i8x16_add_sat_s() {}
+   void emit_i8x16_add_sat_u() {}
+   void emit_i8x16_sub() {}
+   void emit_i8x16_sub_sat_s() {}
+   void emit_i8x16_sub_sat_u() {}
+   void emit_i8x16_min_s() {}
+   void emit_i8x16_min_u() {}
+   void emit_i8x16_max_s() {}
+   void emit_i8x16_max_u() {}
+   void emit_i8x16_avgr_u() {}
 
    void fix_branch(branch_t, label_t) {}
    void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}

@@ -2819,12 +2819,103 @@ namespace eosio { namespace vm {
          emit_vmovups(xmm0, *rsp);
       }
 
-      void emit_i8x16_narrow_i16x8_s() {
+      void emit_i8x16_narrow_i16x8_u() {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
          emit_vmovups(*rsp, xmm1);
          emit(VPACKUSWB, xmm0, xmm1, xmm0);
          emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_shl() {
+         emit_pop(rax);
+         emit_vmovups(*rsp, xmm0);
+         // and $7, %eax
+         emit_bytes(0x83, 0xe0, 0x07);
+         emit_vmovd(eax, xmm2);
+         emit_const_ones(xmm1);
+         emit(VPSLLD, xmm2, xmm1, xmm1);
+         emit(VPBROADCASTB, xmm1, xmm1);
+         emit(VPSLLW, xmm2, xmm0, xmm0);
+         emit(VPAND, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_shr_s() {
+         emit_pop(rax);
+         emit_vmovups(*rsp, xmm0);
+         // and $7, %eax
+         emit_bytes(0x83, 0xe0, 0x07);
+         emit_vmovd(eax, xmm2);
+         emit_const_ones(xmm3);
+         emit(VPSLLW_c, imm8{8}, xmm3, xmm3);
+         emit(VPSLLW_c, imm8{8}, xmm0, xmm1);
+         emit(VPSRAW_c, imm8{8}, xmm1, xmm1);
+         emit(VPSLLW, xmm2, xmm3, xmm3);
+         emit(VPANDN, xmm3, xmm1, xmm1);
+         emit(VPAND, xmm3, xmm0, xmm0);
+         emit(VPOR, xmm1, xmm0, xmm0);
+         emit(VPSRAW, xmm2, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_shr_u() {
+         emit_pop(rax);
+         emit_vmovups(*rsp, xmm0);
+         // and $7, %eax
+         emit_bytes(0x83, 0xe0, 0x07);
+         emit_vmovd(eax, xmm2);
+         emit_const_ones(xmm1);
+         emit(VPSLLW_c, imm8{8}, xmm1, xmm1);
+         emit(VPSRLW, xmm2, xmm1, xmm1);
+         emit(VPBROADCASTB, xmm1, xmm1, xmm1);
+         emit(VPSRLW, xmm2, xmm0, xmm0);
+         emit(VPANDN, xmm1, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i8x16_add() {
+         emit_v128_binop_r(VPADDB);
+      }
+
+      void emit_i8x16_add_sat_s() {
+         emit_v128_binop_r(VPADDSB);
+      }
+
+      void emit_i8x16_add_sat_u() {
+         emit_v128_binop_r(VPADDUSB);
+      }
+
+      void emit_i8x16_sub() {
+         emit_v128_binop(VPSUBB);
+      }
+
+      void emit_i8x16_sub_sat_s() {
+         emit_v128_binop(VPSUBSB);
+      }
+
+      void emit_i8x16_sub_sat_u() {
+         emit_v128_binop(VPSUBUSB);
+      }
+
+      void emit_i8x16_min_s() {
+         emit_v128_binop_r(VPMINSB);
+      }
+
+      void emit_i8x16_min_u() {
+         emit_v128_binop_r(VPMINUB);
+      }
+
+      void emit_i8x16_max_s() {
+         emit_v128_binop_r(VPMAXSB);
+      }
+
+      void emit_i8x16_max_u() {
+         emit_v128_binop_r(VPMAXUB);
+      }
+
+      void emit_i8x16_avgr_u() {
+         emit_v128_binop_r(VPAVGB);
       }
 
       void emit_error() { unimplemented(); }
@@ -2863,7 +2954,8 @@ namespace eosio { namespace vm {
       enum class imm8 : uint8_t {};
       enum general_register {
           rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
-          r8, r9, r10, r11, r12, r13, r14, r15
+          r8, r9, r10, r11, r12, r13, r14, r15,
+          eax = rax, ecx, edx, ebx, esp, ebp, esi, edi
       };
       struct simple_memory_ref { general_register reg; };
       inline friend simple_memory_ref operator*(general_register reg) { return { reg }; }
@@ -2931,6 +3023,10 @@ namespace eosio { namespace vm {
          emit(VEX_128_0F_WIG{0x11}, mem, reg);
       }
 
+      void emit_vmovd(general_register src, xmm_register dest) {
+         emit(VEX_128_66_0F_W0{0x7e}, src, dest);
+      }
+
       void emit_vpxor(xmm_register src1, xmm_register src2, xmm_register dest) {
          emit_VEX_128_66_0F_WIG(0xef, src1, src2, dest);
       }
@@ -2969,8 +3065,14 @@ namespace eosio { namespace vm {
       static constexpr auto VPADDW = VEX_128_66_0F_WIG{0xfd};
       static constexpr auto VPADDD = VEX_128_66_0F_WIG{0xfe};
       static constexpr auto VPADDQ = VEX_128_66_0F_WIG{0xd4};
+      static constexpr auto VPADDSB = VEX_128_66_0F_WIG{0xec};
+      static constexpr auto VPADDSW = VEX_128_66_0F_WIG{0xed};
+      static constexpr auto VPADDUSB = VEX_128_66_0F_WIG{0xdc};
+      static constexpr auto VPADDUSW = VEX_128_66_0F_WIG{0xdd};
       static constexpr auto VPAND = VEX_128_66_0F_WIG{0xdb};
       static constexpr auto VPANDN = VEX_128_66_0F_WIG{0xdf};
+      static constexpr auto VPAVGB = VEX_128_66_0F_WIG{0xe0};
+      static constexpr auto VPAVGW = VEX_128_66_0F_WIG{0xe3};
       static constexpr auto VPBROADCASTB = VEX_128_66_0F38_W0{0x78};
       static constexpr auto VPCMPEQB = VEX_128_66_0F_WIG{0x74};
       static constexpr auto VPCMPEQW = VEX_128_66_0F_WIG{0x75};
@@ -2980,20 +3082,38 @@ namespace eosio { namespace vm {
       static constexpr auto VPCMPGTW = VEX_128_66_0F_WIG{0x65};
       static constexpr auto VPCMPGTD = VEX_128_66_0F_WIG{0x66};
       static constexpr auto VPCMPGTQ = VEX_128_66_0F38_WIG{0x37};
+      static constexpr auto VPMAXSB = VEX_128_66_0F38_WIG{0x3c};
+      static constexpr auto VPMAXSW = VEX_128_66_0F_WIG{0xee};
+      static constexpr auto VPMAXSD = VEX_128_66_0F38_WIG{0x3d};
       static constexpr auto VPMAXUB = VEX_128_66_0F{0xde};
       static constexpr auto VPMAXUW = VEX_128_66_0F38{0x3e};
       static constexpr auto VPMAXUD = VEX_128_66_0F38_WIG{0x3f};
+      static constexpr auto VPMINSB = VEX_128_66_0F38{0x38};
+      static constexpr auto VPMINSW = VEX_128_66_0F{0xea};
+      static constexpr auto VPMINSD = VEX_128_66_0F38_WIG{0x39};
       static constexpr auto VPMINUB = VEX_128_66_0F{0xda};
       static constexpr auto VPMINUW = VEX_128_66_0F38{0x3a};
       static constexpr auto VPMINUD = VEX_128_66_0F38_WIG{0x3b};
       static constexpr auto VPMOVMSKB = VEX_128_66_0F_WIG{0xD7};
       static constexpr auto VPOR = VEX_128_66_0F_WIG{0xeb};
       static constexpr auto VPSHUFB = VEX_128_66_0F38_WIG{0x00};
+      static constexpr auto VPSLLW = VEX_128_66_0F_WIG{0xf1};
+      static constexpr auto VPSLLW_c = VEX<128, pp_66, mmmm_0F, 0, 6>{0x71};
+      static constexpr auto VPSLLD = VEX_128_66_0F_WIG{0xf2};
+      static constexpr auto VPSLLQ = VEX_128_66_0F_WIG{0xf3};
+      static constexpr auto VPSRAW = VEX_128_66_0F_WIG{0xe1};
+      static constexpr auto VPSRAW_c = VEX<128, pp_66, mmmm_0F, 0, 4>{0x71};
+      static constexpr auto VPSRAD = VEX_128_66_0F_WIG{0xe2};
+      static constexpr auto VPSRLW = VEX_128_66_0F_WIG{0xd1};
+      static constexpr auto VPSRLD = VEX_128_66_0F_WIG{0xd2};
+      static constexpr auto VPSRLQ = VEX_128_66_0F_WIG{0xd3};
       static constexpr auto VPSRLQ_c = VEX<128, pp_66, mmmm_0F, 0, 2>{0x73};
       static constexpr auto VPSUBB = VEX_128_66_0F_WIG{0xf8};
       static constexpr auto VPSUBW = VEX_128_66_0F_WIG{0xf9};
       static constexpr auto VPSUBD = VEX_128_66_0F_WIG{0xfa};
       static constexpr auto VPSUBQ = VEX_128_66_0F_WIG{0xfb};
+      static constexpr auto VPSUBSB = VEX_128_66_0F_WIG{0xe8};
+      static constexpr auto VPSUBSW = VEX_128_66_0F_WIG{0xe9};
       static constexpr auto VPSUBUSB = VEX_128_66_0F_WIG{0xd8};
       static constexpr auto VPSUBUSW = VEX_128_66_0F_WIG{0xd9};
       static constexpr auto VPTEST = VEX_128_66_0F38_WIG{0x17};
@@ -3024,6 +3144,13 @@ namespace eosio { namespace vm {
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
       void emit(VEX<Sz, pp, mmmm, W> opcode, simple_memory_ref src1, xmm_register src2) {
          emit_VEX_prefix(src2 & 8, false, src1.reg & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src1, src2);
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, general_register src1, xmm_register src2) {
+         emit_VEX_prefix(src2 & 8, false, src1 & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src1, src2);
       }
@@ -3295,6 +3422,23 @@ namespace eosio { namespace vm {
       template<typename Op>
       void emit_v128_unop(Op opcode) {
          emit(opcode, *rsp, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      template<typename Op>
+      void emit_v128_binop(Op opcode) {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_vmovups(*rsp, xmm1);
+         emit(opcode, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      template<typename Op>
+      void emit_v128_binop_r(Op opcode) {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit(opcode, *rsp, xmm0, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
 
