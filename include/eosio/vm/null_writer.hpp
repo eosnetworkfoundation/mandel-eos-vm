@@ -318,6 +318,38 @@ class null_writer {
    void emit_i8x16_max_s() {}
    void emit_i8x16_max_u() {}
    void emit_i8x16_avgr_u() {}
+   void emit_i16x8_extadd_pairwise_i8x16_s() {}
+   void emit_i16x8_extadd_pairwise_i8x16_u() {}
+   void emit_i16x8_abs() {}
+   void emit_i16x8_neg() {}
+   void emit_i16x8_q15mulr_sat_s() {}
+   void emit_i16x8_all_true() {}
+   void emit_i16x8_bitmask() {}
+   void emit_i16x8_narrow_i32x4_s() {}
+   void emit_i16x8_narrow_i32x4_u() {}
+   void emit_i16x8_extend_low_i8x16_s() {}
+   void emit_i16x8_extend_high_i8x16_s() {}
+   void emit_i16x8_extend_low_i8x16_u() {}
+   void emit_i16x8_extend_high_i8x16_u() {}
+   void emit_i16x8_shl() {}
+   void emit_i16x8_shr_s() {}
+   void emit_i16x8_shr_u() {}
+   void emit_i16x8_add() {}
+   void emit_i16x8_add_sat_s() {}
+   void emit_i16x8_add_sat_u() {}
+   void emit_i16x8_sub() {}
+   void emit_i16x8_sub_sat_s() {}
+   void emit_i16x8_sub_sat_u() {}
+   void emit_i16x8_mul() {}
+   void emit_i16x8_min_s() {}
+   void emit_i16x8_min_u() {}
+   void emit_i16x8_max_s() {}
+   void emit_i16x8_max_u() {}
+   void emit_i16x8_avgr_u() {}
+   void emit_i16x8_extmul_low_i8x16_s() {}
+   void emit_i16x8_extmul_high_i8x16_s() {}
+   void emit_i16x8_extmul_low_i8x16_u() {}
+   void emit_i16x8_extmul_high_i8x16_u() {}
 
    void fix_branch(branch_t, label_t) {}
    void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}
