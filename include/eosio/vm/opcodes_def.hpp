@@ -454,7 +454,7 @@
    opcode_macro(i32x4_abs, 160)                 \
    opcode_macro(i32x4_neg, 161)                 \
    opcode_macro(i32x4_all_true, 163)            \
-   opcode_macro(i32x4_bitmask, 163)             \
+   opcode_macro(i32x4_bitmask, 164)             \
    opcode_macro(i32x4_extend_low_i16x8_s, 167)  \
    opcode_macro(i32x4_extend_high_i16x8_s, 168) \
    opcode_macro(i32x4_extend_low_i16x8_u, 169)  \

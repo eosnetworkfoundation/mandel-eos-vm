@@ -1504,6 +1504,32 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(i16x8_extmul_low_i8x16_u, (v128, v128), (v128));
                      NUMERIC_OP(i16x8_extmul_high_i8x16_u, (v128, v128), (v128));
 
+                     NUMERIC_OP(i32x4_extadd_pairwise_i16x8_s, (v128), (v128));
+                     NUMERIC_OP(i32x4_extadd_pairwise_i16x8_u, (v128), (v128));
+                     NUMERIC_OP(i32x4_abs, (v128), (v128));
+                     NUMERIC_OP(i32x4_neg, (v128), (v128));
+                     NUMERIC_OP(i32x4_all_true, (v128), (i32));
+                     NUMERIC_OP(i32x4_bitmask, (v128), (i32));
+                     NUMERIC_OP(i32x4_extend_low_i16x8_s, (v128), (v128));
+                     NUMERIC_OP(i32x4_extend_high_i16x8_s, (v128), (v128));
+                     NUMERIC_OP(i32x4_extend_low_i16x8_u, (v128), (v128));
+                     NUMERIC_OP(i32x4_extend_high_i16x8_u, (v128), (v128));
+                     NUMERIC_OP(i32x4_shl, (v128, i32), (v128));
+                     NUMERIC_OP(i32x4_shr_s, (v128, i32), (v128));
+                     NUMERIC_OP(i32x4_shr_u, (v128, i32), (v128));
+                     NUMERIC_OP(i32x4_add, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_sub, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_mul, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_min_s, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_min_u, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_max_s, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_max_u, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_dot_i16x8_s, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_extmul_low_i16x8_s, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_extmul_high_i16x8_s, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_extmul_low_i16x8_u, (v128, v128), (v128));
+                     NUMERIC_OP(i32x4_extmul_high_i16x8_u, (v128, v128), (v128));
+
 #undef NUMERIC_OP
 #undef VA_SZ
 #undef VA_SZ_I

@@ -3010,15 +3010,15 @@ namespace eosio { namespace vm {
       }
 
       void emit_i16x8_shl() {
-         emit_v128_binop(VPSLLW);
+         emit_v128_shiftop(VPSLLW, 0x0f);
       }
 
       void emit_i16x8_shr_s() {
-         emit_v128_binop(VPSRAW);
+         emit_v128_shiftop(VPSRAW, 0x0f);
       }
 
       void emit_i16x8_shr_u() {
-         emit_v128_binop(VPSRLW);
+         emit_v128_shiftop(VPSRLW, 0x0f);
       }
 
       void emit_i16x8_add() {
@@ -3106,6 +3106,161 @@ namespace eosio { namespace vm {
          emit(VPSRLDQ_c, imm8{8}, xmm0, xmm0);
          emit(VPMOVZXBW, xmm0, xmm0);
          emit(VPMULLW, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      // i32x4 ops
+
+      void emit_i32x4_extadd_pairwise_i16x8_s() {
+         emit_vmovups(*rsp, xmm0);
+         emit(VPSRLDQ_c, imm8{8}, xmm0, xmm1);
+         emit(VPMOVSXWD, xmm0, xmm0);
+         emit(VPMOVSXWD, xmm1, xmm1);
+         emit(VPHADDD, xmm1, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_extadd_pairwise_i16x8_u() {
+         emit_vmovups(*rsp, xmm0);
+         emit(VPSRLDQ_c, imm8{8}, xmm0, xmm1);
+         emit(VPMOVZXWD, xmm0, xmm0);
+         emit(VPMOVZXWD, xmm1, xmm1);
+         emit(VPHADDD, xmm1, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_abs() {
+         emit_v128_unop(VPABSW);
+      }
+
+      void emit_i32x4_neg() {
+         emit_const_zero(xmm0);
+         emit(VPSUBW, *rsp, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_all_true() {
+         emit_const_zero(xmm0);
+         emit(VPCMPEQD, *rsp, xmm0, xmm0);
+         emit_add(16, rsp);
+         emit(VPTEST, xmm0, xmm0);
+         // xor %eax, %eax
+         emit_bytes(0x31, 0xc0);
+         // setz %al
+         emit_bytes(0x0f, 0x94, 0xc0);
+         emit_push(rax);
+      }
+
+      void emit_i32x4_bitmask() {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit(VMOVMSKPS, xmm0, rax);
+         emit_push(rax);
+      }
+
+      void emit_i32x4_extend_low_i16x8_s() {
+         emit_v128_unop(VPMOVSXWD);
+      }
+
+      void emit_i32x4_extend_high_i16x8_s() {
+         emit_vmovups(*rsp, xmm0);
+         emit(VPSRLDQ_c, imm8{8}, xmm0, xmm0);
+         emit(VPMOVZXWD, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_extend_low_i16x8_u() {
+         emit_v128_unop(VPMOVSXWD);
+      }
+
+      void emit_i32x4_extend_high_i16x8_u() {
+         emit_vmovups(*rsp, xmm0);
+         emit(VPSRLDQ_c, imm8{8}, xmm0, xmm0);
+         emit(VPMOVZXWD, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_shl() {
+         emit_v128_shiftop(VPSLLD, 0x1f);
+      }
+
+      void emit_i32x4_shr_s() {
+         emit_v128_shiftop(VPSRAD, 0x1f);
+      }
+
+      void emit_i32x4_shr_u() {
+         emit_v128_shiftop(VPSRLD, 0x1f);
+      }
+
+      void emit_i32x4_add() {
+         emit_v128_binop_r(VPADDD);
+      }
+
+      void emit_i32x4_sub() {
+         emit_v128_binop(VPSUBD);
+      }
+
+      void emit_i32x4_mul() {
+         emit_v128_binop_r(VPMULLD);
+      }
+
+      void emit_i32x4_min_s() {
+         emit_v128_binop_r(VPMINSD);
+      }
+
+      void emit_i32x4_min_u() {
+         emit_v128_binop_r(VPMINUD);
+      }
+
+      void emit_i32x4_max_s() {
+         emit_v128_binop_r(VPMAXSD);
+      }
+
+      void emit_i32x4_max_u() {
+         emit_v128_binop_r(VPMAXUD);
+      }
+
+      void emit_i32x4_dot_i16x8_s() {
+         emit_v128_binop_r(VPMADDWD);
+      }
+
+      void emit_i32x4_extmul_low_i16x8_s() {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_vmovups(*rsp, xmm0);
+         emit(VPMOVSXWD, xmm0, xmm0);
+         emit(VPMOVSXWD, xmm1, xmm1);
+         emit(VPMULLD, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_extmul_high_i16x8_s() {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_vmovups(*rsp, xmm1);
+         emit(VPMULLW, xmm0, xmm1, xmm2);
+         emit(VPMULHW, xmm0, xmm1, xmm0);
+         emit(VPUNPCKHWD, xmm0, xmm2, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_extmul_low_i16x8_u() {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_vmovups(*rsp, xmm0);
+         emit(VPMOVZXWD, xmm0, xmm0);
+         emit(VPMOVZXWD, xmm1, xmm1);
+         emit(VPMULLD, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i32x4_extmul_high_i16x8_u() {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_vmovups(*rsp, xmm1);
+         emit(VPMULLW, xmm0, xmm1, xmm2);
+         emit(VPMULHUW, xmm0, xmm1, xmm0);
+         emit(VPUNPCKHWD, xmm0, xmm2, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
 
@@ -3245,6 +3400,8 @@ namespace eosio { namespace vm {
       using VEX_128_0F_W0 = VEX<128, pp_none, mmmm_0F, 0>;
       using VEX_128_0F_WIG = VEX_128_0F_W0;
 
+      static constexpr auto VMOVMSKPS = VEX_128_0F_WIG{0x50};
+      static constexpr auto VMOVMSKPD = VEX_128_66_0F_WIG{0x50};
       static constexpr auto VPABSB = VEX_128_66_0F38_WIG{0x1c};
       static constexpr auto VPABSW = VEX_128_66_0F38_WIG{0x1d};
       static constexpr auto VPABSD = VEX_128_66_0F38_WIG{0x1e};
@@ -3275,6 +3432,7 @@ namespace eosio { namespace vm {
       static constexpr auto VPCMPGTQ = VEX_128_66_0F38_WIG{0x37};
       static constexpr auto VPHADDW = VEX_128_66_0F38_WIG{0x01};
       static constexpr auto VPHADDD = VEX_128_66_0F38_WIG{0x02};
+      static constexpr auto VPMADDWD = VEX_128_66_0F_WIG{0xf5};
       static constexpr auto VPMAXSB = VEX_128_66_0F38_WIG{0x3c};
       static constexpr auto VPMAXSW = VEX_128_66_0F_WIG{0xee};
       static constexpr auto VPMAXSD = VEX_128_66_0F38_WIG{0x3d};
@@ -3294,6 +3452,8 @@ namespace eosio { namespace vm {
       static constexpr auto VPMOVZXBW = VEX_128_66_0F38_WIG{0x30};
       static constexpr auto VPMOVZXWD = VEX_128_66_0F38_WIG{0x33};
       static constexpr auto VPMOVZXDQ = VEX_128_66_0F38_WIG{0x35};
+      static constexpr auto VPMULHW = VEX_128_66_0F_WIG{0xe5};
+      static constexpr auto VPMULHUW = VEX_128_66_0F_WIG{0xe4};
       static constexpr auto VPMULHRSW = VEX_128_66_0F38_WIG{0x0b};
       static constexpr auto VPMULLW = VEX_128_66_0F_WIG{0xd5};
       static constexpr auto VPMULLD = VEX_128_66_0F38_WIG{0x40};
@@ -3320,6 +3480,12 @@ namespace eosio { namespace vm {
       static constexpr auto VPSUBUSB = VEX_128_66_0F_WIG{0xd8};
       static constexpr auto VPSUBUSW = VEX_128_66_0F_WIG{0xd9};
       static constexpr auto VPTEST = VEX_128_66_0F38_WIG{0x17};
+      static constexpr auto VPUNPCKHBW = VEX_128_66_0F_WIG{0x68};
+      static constexpr auto VPUNPCKHWD = VEX_128_66_0F_WIG{0x69};
+      static constexpr auto VPUNPCKHDQ = VEX_128_66_0F_WIG{0x6a};
+      static constexpr auto VPUNPCKLBW = VEX_128_66_0F_WIG{0x60};
+      static constexpr auto VPUNPCKLWD = VEX_128_66_0F_WIG{0x61};
+      static constexpr auto VPUNPCKLDQ = VEX_128_66_0F_WIG{0x62};
       static constexpr auto VPXOR = VEX_128_66_0F_WIG{0xef};
 
       void emit_VEX_prefix(bool R, bool X, bool B, VEX_mmmm mmmm, bool W, int vvvv, bool L, VEX_pp pp) {
@@ -3620,6 +3786,17 @@ namespace eosio { namespace vm {
             emit_vpxor(xmm1, xmm0, xmm0);
          }
          emit_vmovups(xmm0, *rsp);
+      }
+
+      template<typename Op>
+      void emit_v128_shiftop(Op opcode, uint8_t mask) {
+         emit_pop(rax);
+         // and $mask, %eax
+         emit_bytes(0x83, 0xe0, mask);
+         emit_movups(*rsp, xmm0);
+         emit_vmovd(eax, xmm1);
+         emit(opcode, xmm1, xmm0, xmm0);
+         emit_movups(xmm0, *rsp);
       }
 
       template<typename Op>
