@@ -3264,6 +3264,147 @@ namespace eosio { namespace vm {
          emit_vmovups(xmm0, *rsp);
       }
 
+      // i64x2 ops
+
+      void emit_i64x2_abs() {
+         emit_vmovups(*rsp, xmm0);
+         emit_const_zero(xmm1);
+         emit(VPCMPGTQ, xmm0, xmm1, xmm1);
+         emit(VPXOR, xmm0, xmm1, xmm0);
+         emit(VPSUBQ, xmm1, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_neg() {
+         emit_const_zero(xmm0);
+         emit(VPSUBQ, *rsp, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_all_true() {
+         emit_const_zero(xmm0);
+         emit(VPCMPEQQ, *rsp, xmm0, xmm0);
+         emit_add(16, rsp);
+         emit(VPTEST, xmm0, xmm0);
+         // xor %eax, %eax
+         emit_bytes(0x31, 0xc0);
+         // setz %al
+         emit_bytes(0x0f, 0x94, 0xc0);
+         emit_push(rax);
+      }
+
+      void emit_i64x2_bitmask() {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit(VMOVMSKPD, xmm0, rax);
+         emit_push(rax);
+      }
+
+      void emit_i64x2_extend_low_i32x4_s() {
+         emit_v128_unop(VPMOVSXDQ);
+      }
+
+      void emit_i64x2_extend_high_i32x4_s() {
+         emit_vmovups(*rsp, xmm0);
+         emit(VPSRLDQ_c, imm8{8}, xmm0, xmm0);
+         emit(VPMOVSXDQ, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_extend_low_i32x4_u() {
+         emit_v128_unop(VPMOVZXDQ);
+      }
+
+      void emit_i64x2_extend_high_i32x4_u() {
+         emit_vmovups(*rsp, xmm0);
+         emit(VPSRLDQ_c, imm8{8}, xmm0, xmm0);
+         emit(VPMOVZXDQ, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_shl() {
+         emit_v128_shiftop(VPSLLQ, 0x3f);
+      }
+
+      void emit_i64x2_shr_s() {
+         // (x >> n) | ((0 > x) << (64 - n))
+         emit_pop(rax);
+         // and $mask, %eax
+         emit_bytes(0x83, 0xe0, 0x3f);
+         // mov $64, %ecx
+         emit_bytes(0xb9);
+         emit_operand32(64);
+         // sub %eax, %ecx
+         emit_bytes(0x2b, 0xc8);
+         emit_movups(*rsp, xmm0);
+         emit_vmovd(eax, xmm1);
+         emit_vmovd(ecx, xmm3);
+         emit_const_zero(xmm2);
+         emit(VPCMPGTQ, xmm0, xmm2, xmm2);
+         emit(VPSLLQ, xmm3, xmm2, xmm2);
+         emit(VPSRLQ, xmm1, xmm0, xmm0);
+         emit(VPOR, xmm0, xmm2, xmm0);
+         emit_movups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_shr_u() {
+         emit_v128_shiftop(VPSRLQ, 0x3f);
+      }
+
+      void emit_i64x2_add() {
+         emit_v128_binop_r(VPADDQ);
+      }
+
+      void emit_i64x2_sub() {
+         emit_v128_binop(VPSUBQ);
+      }
+
+      void emit_i64x2_mul() {
+         emit_vmovups(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_vmovups(*rsp, xmm0);
+         emit(VPMULUDQ, xmm0, xmm1, xmm2);
+         emit(VPSHUFD, imm8{0xb1}, xmm0, xmm0);
+         emit(VPMULLD, xmm0, xmm1, xmm0);
+         emit(VPHADDD, xmm0, xmm0, xmm0);
+         emit_const_zero(xmm1);
+         emit(VPUNPCKLWD, xmm0, xmm1, xmm0);
+         emit(VPADDQ, xmm0, xmm2, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_extmul_low_i32x4_s() {
+         emit(VPSHUFD, imm8{0x10}, *rsp, xmm0);
+         emit_add(16, rsp);
+         emit(VPSHUFD, imm8{0x10}, *rsp, xmm1);
+         emit(VPMULDQ, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_extmul_high_i32x4_s() {
+         emit(VPSHUFD, imm8{0x32}, *rsp, xmm0);
+         emit_add(16, rsp);
+         emit(VPSHUFD, imm8{0x32}, *rsp, xmm1);
+         emit(VPMULDQ, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_extmul_low_i32x4_u() {
+         emit(VPSHUFD, imm8{0x10}, *rsp, xmm0);
+         emit_add(16, rsp);
+         emit(VPSHUFD, imm8{0x10}, *rsp, xmm1);
+         emit(VPMULUDQ, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
+      void emit_i64x2_extmul_high_i32x4_u() {
+         emit(VPSHUFD, imm8{0x32}, *rsp, xmm0);
+         emit_add(16, rsp);
+         emit(VPSHUFD, imm8{0x32}, *rsp, xmm1);
+         emit(VPMULUDQ, xmm0, xmm1, xmm0);
+         emit_vmovups(xmm0, *rsp);
+      }
+
       void emit_error() { unimplemented(); }
 
       // --------------- random  ------------------------
@@ -3457,8 +3598,11 @@ namespace eosio { namespace vm {
       static constexpr auto VPMULHRSW = VEX_128_66_0F38_WIG{0x0b};
       static constexpr auto VPMULLW = VEX_128_66_0F_WIG{0xd5};
       static constexpr auto VPMULLD = VEX_128_66_0F38_WIG{0x40};
+      static constexpr auto VPMULDQ = VEX_128_66_0F38_WIG{0x28};
+      static constexpr auto VPMULUDQ = VEX_128_66_0F_WIG{0xf4};
       static constexpr auto VPOR = VEX_128_66_0F_WIG{0xeb};
       static constexpr auto VPSHUFB = VEX_128_66_0F38_WIG{0x00};
+      static constexpr auto VPSHUFD = VEX_128_66_0F_WIG{0x70};
       static constexpr auto VPSLLW = VEX_128_66_0F_WIG{0xf1};
       static constexpr auto VPSLLW_c = VEX<128, pp_66, mmmm_0F, 0, 6>{0x71};
       static constexpr auto VPSLLD = VEX_128_66_0F_WIG{0xf2};
@@ -3536,6 +3680,22 @@ namespace eosio { namespace vm {
          emit_VEX_prefix(src2 & 8, false, src1 & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src1, src2);
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 src1, simple_memory_ref src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src2.reg & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src2, dest);
+         emit_byte(static_cast<uint8_t>(src1));
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src2 & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src2, dest);
+         emit_byte(static_cast<uint8_t>(src1));
       }
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W, int OpExt>

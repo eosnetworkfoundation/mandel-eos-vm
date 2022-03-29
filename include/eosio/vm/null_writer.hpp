@@ -375,6 +375,24 @@ class null_writer {
    void emit_i32x4_extmul_high_i16x8_s() {}
    void emit_i32x4_extmul_low_i16x8_u() {}
    void emit_i32x4_extmul_high_i16x8_u() {}
+   void emit_i64x2_abs() {}
+   void emit_i64x2_neg() {}
+   void emit_i64x2_all_true() {}
+   void emit_i64x2_bitmask() {}
+   void emit_i64x2_extend_low_i32x4_s() {}
+   void emit_i64x2_extend_high_i32x4_s() {}
+   void emit_i64x2_extend_low_i32x4_u() {}
+   void emit_i64x2_extend_high_i32x4_u() {}
+   void emit_i64x2_shl() {}
+   void emit_i64x2_shr_s() {}
+   void emit_i64x2_shr_u() {}
+   void emit_i64x2_add() {}
+   void emit_i64x2_sub() {}
+   void emit_i64x2_mul() {}
+   void emit_i64x2_extmul_low_i32x4_s() {}
+   void emit_i64x2_extmul_high_i32x4_s() {}
+   void emit_i64x2_extmul_low_i32x4_u() {}
+   void emit_i64x2_extmul_high_i32x4_u() {}
 
    void fix_branch(branch_t, label_t) {}
    void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}
