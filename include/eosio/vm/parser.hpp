@@ -526,7 +526,7 @@ namespace eosio { namespace vm {
          if (ft.return_count > 0) {
             uint8_t rt        = *code++;
             ft.return_type = rt;
-            EOS_VM_ASSERT(rt == types::i32 || rt == types::i64 || rt == types::f32 || rt == types::f64,
+            EOS_VM_ASSERT(rt == types::i32 || rt == types::i64 || rt == types::f32 || rt == types::f64 || rt == types::v128,
                           wasm_parse_exception, "invalid function return type");
          }
       }

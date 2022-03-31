@@ -169,7 +169,7 @@ namespace eosio { namespace vm {
       }
 
       static constexpr std::size_t max_prologue_size = 21;
-      static constexpr std::size_t max_epilogue_size = 10;
+      static constexpr std::size_t max_epilogue_size = 18;
       void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& locals, uint32_t funcnum) {
          _ft = &_mod.types[_mod.functions[funcnum]];
          // FIXME: This is not a tight upper bound
@@ -220,8 +220,13 @@ namespace eosio { namespace vm {
          void * epilogue_start = code;
 #endif
          if(ft.return_count != 0) {
-            // pop RAX
-            emit_bytes(0x58);
+            if(ft.return_type == types::v128) {
+               emit_vmovups(*rsp, xmm0);
+               emit_add(16, rsp);
+            } else {
+               // pop RAX
+               emit_bytes(0x58);
+            }
          }
          if (_local_count & 0xF0000000u) unimplemented();
          emit_multipop(_local_count);
@@ -389,9 +394,15 @@ namespace eosio { namespace vm {
          void * branch = emit_branch_target32();
          emit_multipop(ft.param_types.size());
          register_call(branch, funcnum);
-         if(ft.return_count != 0)
-            // pushq %rax
-            emit_bytes(0x50);
+         if(ft.return_count != 0) {
+            if(ft.return_type == v128) {
+               emit_sub(16, rsp);
+               emit_vmovups(xmm0, *rsp);
+            } else {
+               // pushq %rax
+               emit_bytes(0x50);
+            }
+         }
          emit_check_call_depth_end();
       }
 
@@ -422,9 +433,15 @@ namespace eosio { namespace vm {
          // callq *%rax
          emit_bytes(0xff, 0xd0);
          emit_multipop(ft.param_types.size());
-         if(ft.return_count != 0)
-            // pushq %rax
-            emit_bytes(0x50);
+         if(ft.return_count != 0){
+            if(ft.return_type == v128) {
+               emit_sub(16, rsp);
+               emit_vmovups(xmm0, *rsp);
+            } else {
+               // pushq %rax
+               emit_bytes(0x50);
+            }
+         }
          emit_check_call_depth_end();
       }
 

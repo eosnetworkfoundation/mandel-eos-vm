@@ -1165,6 +1165,8 @@ string generate_test_call(picojson::object obj, string expected_t, string expect
       ss << "bit_cast<uint32_t>(bkend.call_with_return(\"env\", ";
    } else if (expected_t == "f64") {
       ss << "bit_cast<uint64_t>(bkend.call_with_return(\"env\", ";
+   } else if (expected_t == "v128") {
+      ss << "bkend.call_with_return(\"env\", ";
    } else {
       ss << "!bkend.call_with_return(\"env\", ";
    }
@@ -1195,6 +1197,9 @@ string generate_test_call(picojson::object obj, string expected_t, string expect
    } else if (expected_t == "f64") {
       ss << ")->to_f64()) == ";
       ss << "UINT64_C(" << expected_v << ")";
+   } else if (expected_t == "v128") {
+      ss << ")->to_v128() == ";
+      ss << expected_v;
    } else {
       ss << ")";
    }
@@ -1288,7 +1293,18 @@ void generate_tests(const map<string, vector<picojson::object>>& mappings) {
    unit_tests << test_includes;
    auto grab_expected = [&](auto obj) {
       exp_t = obj["type"].to_str();
-      exp_v = obj["value"].to_str();
+      if(exp_t == "v128") {
+         exp_v = "make_v128_" + obj["lane_type"].to_str() + "(";
+         bool first = true;
+         for(auto elem : obj["value"].template get<picojson::array>()) {
+            if(!first) exp_v += ",";
+            else first = false;
+            exp_v += elem.to_str();
+         }
+         exp_v += ")";
+      } else {
+         exp_v = obj["value"].to_str();
+      }
    };
 
    for (const auto& [tsn_file, cmds] : mappings) {

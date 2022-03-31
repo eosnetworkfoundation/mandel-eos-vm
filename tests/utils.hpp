@@ -39,6 +39,14 @@ T bit_cast(const U& u) {
    return result;
 }
 
+template<typename... T>
+eosio::vm::v128_t make_v128_i8(T... x) {
+   static_assert(sizeof...(T) == 16);
+   uint8_t a[16] = {static_cast<uint8_t>(x)...};
+   eosio::vm::v128_t result;
+   memcpy(&result, &a, 16);
+   return result;
+}
 
 inline bool check_nan(const std::optional<eosio::vm::operand_stack_elem>& v) {
    return visit(eosio::vm::overloaded{[](eosio::vm::i32_const_t){ return false; },
