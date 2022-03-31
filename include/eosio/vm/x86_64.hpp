@@ -116,7 +116,7 @@ namespace eosio { namespace vm {
          // uint32_t vector_result -> (RBP + 16)
          emit_push(rbp);
          emit_movq(rsp, rbp);
-         emit_sub(32, rsp);
+         emit_sub(16, rsp);
 
          // switch stack
          emit(TESTQ, r8, r8);
