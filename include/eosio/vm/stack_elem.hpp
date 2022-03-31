@@ -7,9 +7,9 @@
 
 namespace eosio { namespace vm {
 
-   class operand_stack_elem : public variant<i32_const_t, i64_const_t, f32_const_t, f64_const_t> {
+   class operand_stack_elem : public variant<i32_const_t, i64_const_t, f32_const_t, f64_const_t, v128_const_t> {
       public:
-         using variant<i32_const_t, i64_const_t, f32_const_t, f64_const_t>::variant;
+         using variant<i32_const_t, i64_const_t, f32_const_t, f64_const_t, v128_const_t>::variant;
          inline int32_t&  to_i32() & { return get<i32_const_t>().data.i; }
          inline uint32_t& to_ui32() & { return get<i32_const_t>().data.ui; }
          inline float&    to_f32() & { return get<f32_const_t>().data.f; }
@@ -30,5 +30,7 @@ namespace eosio { namespace vm {
          inline double   to_f64() const & { return get<f64_const_t>().data.f; }
          inline uint64_t to_fui64() const & { return get<f64_const_t>().data.ui; }
 
+         inline v128_t& to_v128() & { return get<v128_const_t>().data; };
+         inline v128_t to_v128() const& { return get<v128_const_t>().data; };
    };
 }} // nameo::vm

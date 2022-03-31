@@ -201,9 +201,12 @@ namespace eosio { namespace vm {
    };
 
    template<bool EnableBacktrace>
-   struct frame_info_holder {};
+   struct frame_info_holder {
+      uint32_t _remaining_call_depth;
+   };
    template<>
    struct frame_info_holder<true> {
+      uint32_t remaining_call_depth;
       void* volatile _bottom_frame = nullptr;
       void* volatile _top_frame = nullptr;
    };
@@ -223,10 +226,12 @@ namespace eosio { namespace vm {
       using base_type::linear_memory;
       using base_type::get_interface;
 
-      jit_execution_context(module& m, std::uint32_t max_call_depth) : base_type(m), _remaining_call_depth(max_call_depth) {}
+      jit_execution_context(module& m, std::uint32_t max_call_depth) : base_type(m) {
+         this->_remaining_call_depth = max_call_depth;
+      }
 
       void set_max_call_depth(std::uint32_t max_call_depth) {
-         _remaining_call_depth = max_call_depth;
+         this->_remaining_call_depth = max_call_depth;
       }
 
       inline native_value call_host_function(native_value* stack, uint32_t index) {
@@ -278,13 +283,13 @@ namespace eosio { namespace vm {
 
          const func_type& ft = _mod.get_function_type(func_index);
          this->type_check_args(ft, static_cast<Args&&>(args)...);
-         native_value result;
+         native_value_extended result;
          native_value args_raw[] = { transform_arg(static_cast<Args&&>(args))... };
 
          try {
             if (func_index < _mod.get_imported_functions_size()) {
                std::reverse(args_raw + 0, args_raw + sizeof...(Args));
-               result = call_host_function(args_raw, func_index);
+               result.scalar = call_host_function(args_raw, func_index);
             } else {
                constexpr std::size_t stack_cutoff = 252144;
                std::size_t maximum_stack_usage =
@@ -311,11 +316,11 @@ namespace eosio { namespace vm {
                   }};
 
                   vm::invoke_with_signal_handler([&]() {
-                     result = execute<sizeof...(Args)>(args_raw, fn, this, base_type::linear_memory(), stack);
+                     result = execute<sizeof...(Args)>(args_raw, fn, this, base_type::linear_memory(), stack, ft.return_type);
                   }, handle_signal);
                } else {
                   vm::invoke_with_signal_handler([&]() {
-                     result = execute<sizeof...(Args)>(args_raw, fn, this, base_type::linear_memory(), stack);
+                     result = execute<sizeof...(Args)>(args_raw, fn, this, base_type::linear_memory(), stack, ft.return_type);
                   }, handle_signal);
                }
             }
@@ -326,10 +331,11 @@ namespace eosio { namespace vm {
          if(!ft.return_count)
             return {};
          else switch (ft.return_type) {
-            case i32: return {i32_const_t{result.i32}};
-            case i64: return {i64_const_t{result.i64}};
-            case f32: return {f32_const_t{result.f32}};
-            case f64: return {f64_const_t{result.f64}};
+            case i32: return {i32_const_t{result.scalar.i32}};
+            case i64: return {i64_const_t{result.scalar.i64}};
+            case f32: return {f32_const_t{result.scalar.f32}};
+            case f64: return {f64_const_t{result.scalar.f64}};
+            case v128: return {v128_const_t{result.vector}};
             default: assert(!"Unexpected function return type");
          }
          __builtin_unreachable();
@@ -403,10 +409,18 @@ namespace eosio { namespace vm {
          return result;
       }
 
+      using wasm_interface_function_type = native_value_extended(*)(jit_execution_context* context, void* linear_memory, native_value* data, native_value (*fun)(void*, void*), void* stack, uint64_t count, uint32_t vector_result);
+
+      wasm_interface_function_type get_execute() {
+         return reinterpret_cast<wasm_interface_function_type>(this->get_module().allocator.get_code_start());
+      }
+
       /* TODO abstract this and clean this up a bit, this really doesn't belong here */
       template<int Count>
-      static native_value execute(native_value* data, native_value (*fun)(void*, void*), jit_execution_context* context, void* linear_memory, void* stack) {
+      static native_value_extended execute(native_value* data, native_value (*fun)(void*, void*), jit_execution_context* context, void* linear_memory, void* stack, uint8_t result_type) {
          static_assert(sizeof(native_value) == 8, "8-bytes expected for native_value");
+         return context->get_execute()(context, linear_memory, data, fun, stack, Count, result_type == types::v128);
+#if 0
          native_value result;
          unsigned stack_check = context->_remaining_call_depth;
          // TODO refactor this whole thing to not need all of this, should be generated from the backend
@@ -467,10 +481,10 @@ namespace eosio { namespace vm {
          }
 #undef ASM_CODE
          return result;
+#endif
       }
 
       host_type * _host = nullptr;
-      uint32_t _remaining_call_depth;
    };
 
    template <typename Host>

@@ -54,8 +54,6 @@ namespace eosio { namespace vm {
         (lhs.return_count || lhs.return_type == rhs.return_type);
    }
 
-   struct v128_t { uint64_t low,high; };
-
    union expr_value {
       int32_t  i32;
       int64_t  i64;
@@ -131,6 +129,11 @@ namespace eosio { namespace vm {
       uint64_t i64;
       float f32;
       double f64;
+   };
+
+   union native_value_extended {
+      native_value scalar;
+      v128_t vector;
    };
 
    struct function_body {

@@ -28,6 +28,8 @@ namespace eosio { namespace vm {
    //   the stack.
    //
    // - The base of memory is stored in rsi
+   // - rdi hold the execution context
+   // - rbx holds the remaining stack frames
    //
    // - FIXME: Factor the machine instructions into a separate assembler class.
    template<typename Context>
@@ -35,6 +37,12 @@ namespace eosio { namespace vm {
     public:
       machine_code_writer(growable_allocator& alloc, std::size_t source_bytes, module& mod) :
          _mod(mod), _code_segment_base(alloc.start_code()) {
+         _code_start = _mod.allocator.alloc<unsigned char>(128);
+         _code_end = _code_start + 128;
+         code = _code_start;
+         // TODO: shrink to fit
+
+         emit_sysv_abi_interface();
          const std::size_t code_size = 4 * 16; // 4 error handlers, each is 16 bytes.
          _code_start = _mod.allocator.alloc<unsigned char>(code_size);
          _code_end = _code_start + code_size;
@@ -97,6 +105,68 @@ namespace eosio { namespace vm {
          }
       }
       ~machine_code_writer() { _mod.allocator.end_code<true>(_code_segment_base); }
+
+      void emit_sysv_abi_interface() {
+         // jit_execution_context* context -> RDI
+         // void* linear_memory -> RSI
+         // native_value* data, -> RDX
+         // native_value (*fun)(void*, void*) -> RCX
+         // void* stack -> R8
+         // uint64_t count -> R9
+         // uint32_t vector_result -> (RBP + 16)
+         emit_push(rbp);
+         emit_movq(rsp, rbp);
+         emit_sub(32, rsp);
+
+         // switch stack
+         emit(TESTQ, r8, r8);
+         // cmovnz
+         emit(IA32_REX_W(0x0f, 0x45), r8, rsp);
+
+         // save and set mxcsr
+         emit(STMXCSR, *(rbp - 4));
+         emit_movd(0x1f80, *(rbp - 8));
+         emit(LDMXCSR, *(rbp - 8));
+
+         // copy args
+         emit(TESTQ, r9, r9);
+         void* loop_end = emit_branch8(JZ);
+         void* loop = code;
+         emit_movq(*rdx, rax);
+         emit_add(8, rdx);
+         emit_push(rax);
+         emit(DECQ, r9);
+         fix_branch8(emit_branch8(JNZ), loop);
+         fix_branch8(loop_end, code);
+
+         // load call depth counter
+         emit_movq(rbx, *(rbp - 16));
+         emit_movd(*rdi, ebx);
+
+         if constexpr (Context::async_backtrace()) {
+            emit_movq(rbp, *(rdi + 16));
+         }
+         emit_call(rcx);
+         if constexpr (Context::async_backtrace()) {
+            emit_xord(edx, edx);
+            emit_movq(rdx, *(rdi + 16));
+         }
+
+         emit_movq(*(rbp - 16), rbx);
+
+         emit(LDMXCSR, *(rbp - 4));
+
+         emit_movd(*(rbp + 16), edx);
+         emit(TESTD, edx, edx);
+         void* is_vector = emit_branch8(JZ);
+         emit_vpextrq(0, xmm0, rax);
+         emit_vpextrq(1, xmm0, rdx);
+         fix_branch8(is_vector, code);
+
+         emit_movq(rbp, rsp);
+         emit_pop(rbp);
+         emit(RET);
+      }
 
       static constexpr std::size_t max_prologue_size = 21;
       static constexpr std::size_t max_epilogue_size = 10;
@@ -3417,6 +3487,15 @@ namespace eosio { namespace vm {
          memcpy(branch, &relative, 4);
       }
 
+      static void fix_branch8(void* branch, void* target) {
+         auto branch_ = static_cast<uint8_t*>(branch);
+         auto target_ = static_cast<uint8_t*>(target);
+         auto relative = static_cast<uint8_t>(target_ - (branch_ + 1));
+         if((target_ - (branch_ + 1)) > 0x7Fll ||
+            (target_ - (branch_ + 1)) < -0x80ll) unimplemented();
+         memcpy(branch, &relative, 1);
+      }
+
       // A 64-bit absolute address is used for function calls whose
       // address is too far away for a 32-bit relative call.
       static void fix_branch64(void* branch, void* target) {
@@ -3446,43 +3525,93 @@ namespace eosio { namespace vm {
       };
       struct simple_memory_ref { general_register reg; };
       inline friend simple_memory_ref operator*(general_register reg) { return { reg }; }
+      struct register_add_expr { general_register reg; int32_t offset; };
+      inline friend register_add_expr operator+(general_register reg, int32_t offset) { return { reg, offset }; }
+      inline friend register_add_expr operator+(int32_t offset, general_register reg) { return { reg, offset }; }
+      inline friend register_add_expr operator-(general_register reg, int32_t offset) { return { reg, -offset }; }
+      struct disp_memory_ref {
+         constexpr disp_memory_ref(general_register reg, int32_t offset) : reg(reg), offset(offset) {}
+         constexpr disp_memory_ref(simple_memory_ref other) : reg(other.reg), offset(0) {}
+         general_register reg;
+         int32_t offset;
+      };
+      inline friend disp_memory_ref operator*(register_add_expr expr) { return { expr.reg, expr.offset }; }
       enum xmm_register {
           xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,
           xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
       };
 
       void emit_add(uint32_t immediate, general_register dest) {
-         if(immediate <= 0xFFu && dest == rsp) {
-            emit_bytes(0x48, 0x83, 0xc4, immediate);
+         if(immediate <= 0x7Fu || immediate >= 0xFFFFFF80u) {
+            emit(IA32_REX_W(0x83)/0, static_cast<imm8>(immediate), dest);
          } else {
             unimplemented();
          }
       }
       
       void emit_sub(uint32_t immediate, general_register dest) {
-         if(immediate <= 0xFFu && dest == rsp) {
-            emit_bytes(0x48, 0x83, 0xec, immediate);
+         if(immediate <= 0x7Fu || immediate >= 0xFFFFFF80u) {
+            emit(IA32_REX_W(0x83)/5, static_cast<imm8>(immediate), dest);
          } else {
             unimplemented();
          }
       }
 
+      void emit_call(general_register reg) {
+         emit(IA32(0xff)/2, reg);
+      }
+
+      void emit_ldmxcsr(disp_memory_ref mem) {
+         emit_REX_prefix(false, mem, 0);
+         emit_bytes(0x0f, 0xae);
+         emit_modrm_sib_disp(mem, 2);
+      }
+
+      void emit_stmxcsr(disp_memory_ref mem) {
+         emit_REX_prefix(false, mem, 0);
+         emit_bytes(0x0f, 0xae);
+         emit_modrm_sib_disp(mem, 3);
+      }
+
+      void emit_movd(uint32_t src, disp_memory_ref dest) {
+         emit(IA32(0xc7)/0, dest);
+         emit_operand32(src);
+      }
+
+      void emit_movd(general_register src, general_register dest) {
+         emit(IA32(0x8b), src, dest);
+      }
+
+      void emit_movd(disp_memory_ref mem, general_register reg) {
+         emit(IA32(0x8b), mem, reg);
+      }
+
+      void emit_movq(general_register src, general_register dest) {
+         emit(IA32_REX_W(0x8b), src, dest);
+      }
+
+      void emit_movq(disp_memory_ref mem, general_register reg) {
+         emit(IA32_REX_W(0x8b), mem, reg);
+      }
+
+      void emit_movq(general_register reg, disp_memory_ref mem) {
+         emit(IA32_REX_W(0x89), mem, reg);
+      }
+
       void emit_pop(general_register reg) {
-         if(reg == rax) {
-            emit_bytes(0x58);
-         } else {
-            unimplemented();
-         }
+         emit_REX_prefix(false, false, false, reg & 8);
+         emit_bytes(0x58 | (reg & 7));
       }
-      
+
       void emit_push(general_register reg) {
-         if(reg == rax) {
-            emit_bytes(0x50);
-         } else {
-            unimplemented();
-         }
+         emit_REX_prefix(false, false, false, reg & 8);
+         emit_bytes(0x50 | (reg & 7));
       }
-      
+
+      void emit_xord(general_register src, general_register dest) {
+         emit(IA32(0x33), src, dest);
+      }
+
       void emit_movups(simple_memory_ref mem, xmm_register reg) {
          if(mem.reg == rsp) {
             if(reg >= 8) {
@@ -3514,6 +3643,26 @@ namespace eosio { namespace vm {
          emit(VEX_128_66_0F_W0{0x7e}, src, dest);
       }
 
+      template<typename T>
+      void emit_vpextrb(uint8_t offset, xmm_register src, T dest) {
+         emit(VEX_128_66_0F3A_W0{0x14}, imm8{offset}, dest, src);
+      }
+
+      template<typename T>
+      void emit_vpextrw(uint8_t offset, xmm_register src, T dest) {
+         emit(VEX_128_66_0F3A_W0{0x15}, imm8{offset}, dest, src);
+      }
+
+      template<typename T>
+      void emit_vpextrd(uint8_t offset, xmm_register src, T dest) {
+         emit(VEX_128_66_0F3A_W0{0x16}, imm8{offset}, dest, src);
+      }
+
+      template<typename T>
+      void emit_vpextrq(uint8_t offset, xmm_register src, T dest) {
+         emit(VEX_128_66_0F3A_W1{0x16}, imm8{offset}, dest, src);
+      }
+
       void emit_vpxor(xmm_register src1, xmm_register src2, xmm_register dest) {
          emit_VEX_128_66_0F_WIG(0xef, src1, src2, dest);
       }
@@ -3526,6 +3675,36 @@ namespace eosio { namespace vm {
          // vpcmpeqb %reg, %reg, %reg
          emit_VEX_128_66_0F_WIG(0x74, reg, reg, reg);
       }
+
+      template<bool W, int N>
+      struct IA32_t { uint8_t opcode[N]; };
+      template<typename Base>
+      struct IA32_opext { Base base; int opext; };
+      template<bool W, int N>
+      inline constexpr friend IA32_opext<IA32_t<W, N>> operator/(IA32_t<W, N> base, int opext) {
+         return {base, opext};
+      }
+
+      template<typename... Op>
+      static constexpr auto IA32(Op... op) {
+         return IA32_t<false, sizeof...(Op)>{{ static_cast<uint8_t>(op)... }};
+      }
+      template<typename... Op>
+      static constexpr auto IA32_REX_W(Op... op) {
+         return IA32_t<true, sizeof...(Op)>{{ static_cast<uint8_t>(op)... }};
+      }
+
+      struct Jcc { uint8_t opcode; };
+
+      // When adding jcc codes, verify that the rel8/rel32 versions are 7x and 0F 8x
+      static constexpr auto DECQ = IA32_REX_W(0xFF)/1;
+      static constexpr auto JZ = Jcc{0x74};
+      static constexpr auto JNZ = Jcc{0x75};
+      static constexpr auto LDMXCSR = IA32(0x0f, 0xae)/2;
+      static constexpr auto STMXCSR = IA32(0x0f, 0xae)/3;
+      static constexpr auto RET = IA32(0xc3);
+      static constexpr auto TESTD = IA32(0x85);
+      static constexpr auto TESTQ = IA32_REX_W(0x85);
 
       enum VEX_mmmm { mmmm_none, mmmm_0F, mmmm_0F38, mmmm_0F3A };
       enum VEX_pp { pp_none, pp_66, pp_F3, pp_F2 };
@@ -3540,6 +3719,8 @@ namespace eosio { namespace vm {
       using VEX_128_66_0F38 = VEX_128_66_0F38_W0;
       using VEX_128_0F_W0 = VEX<128, pp_none, mmmm_0F, 0>;
       using VEX_128_0F_WIG = VEX_128_0F_W0;
+      using VEX_128_66_0F3A_W0 = VEX<128, pp_66, mmmm_0F3A, 0>;
+      using VEX_128_66_0F3A_W1 = VEX<128, pp_66, mmmm_0F3A, 1>;
 
       static constexpr auto VMOVMSKPS = VEX_128_0F_WIG{0x50};
       static constexpr auto VMOVMSKPD = VEX_128_66_0F_WIG{0x50};
@@ -3632,11 +3813,44 @@ namespace eosio { namespace vm {
       static constexpr auto VPUNPCKLDQ = VEX_128_66_0F_WIG{0x62};
       static constexpr auto VPXOR = VEX_128_66_0F_WIG{0xef};
 
+      void emit_REX_prefix(bool W, bool R, bool X, bool B) {
+         if(W || R || X || B) {
+            emit_bytes(0x40 | (W << 3) | (R << 2) | (X << 1) | (B << 0));
+         }
+      }
+
+      void emit_REX_prefix(bool W, general_register r_m, int reg) {
+         emit_REX_prefix(W, reg & 8, false, r_m & 8);
+      }
+
+      void emit_REX_prefix(bool W, disp_memory_ref mem, int reg) {
+         emit_REX_prefix(W, reg & 8, false, mem.reg & 8);
+      }
+
       void emit_VEX_prefix(bool R, bool X, bool B, VEX_mmmm mmmm, bool W, int vvvv, bool L, VEX_pp pp) {
          if(X || B || mmmm || W) {
             emit_bytes(0xc4, (!R << 7) | (!X << 6) | (!B << 5) | mmmm, (W << 7) | ((vvvv ^ 0xF) << 3) | (L << 2) | pp);
          } else {
             emit_bytes(0xc5, (!R << 7) | (vvvv << 3) | (L << 2) | pp);
+         }
+      }
+
+      void emit_modrm_sib_disp(disp_memory_ref mem, int reg) {
+         if(mem.offset == 0) {
+            return emit_modrm_sib_disp(simple_memory_ref{mem.reg}, reg);
+         } else if(mem.offset >= -0x80 && mem.offset <= 0x7f) {
+            if(mem.reg == rsp) {
+               emit_bytes(0x40 | ((reg & 7) << 3) | 0x04, 0x24, mem.offset);
+            } else {
+               emit_bytes(0x40 | ((reg & 7) << 3) | (mem.reg & 7), mem.offset);
+            }
+         } else {
+            if(mem.reg == rsp) {
+               emit_bytes(0x80 | ((reg & 7) << 3) | 0x04, 0x24);
+            } else {
+               emit_bytes(0x80 | ((reg & 7) << 3) | (mem.reg & 7));
+            }
+            emit_operand32(mem.offset);
          }
       }
 
@@ -3652,6 +3866,45 @@ namespace eosio { namespace vm {
 
       void emit_modrm_sib_disp(int r_m, int reg) {
          emit_bytes(0xc0 | ((reg & 7) << 3) | (r_m & 7));
+      }
+
+      template<bool W, int N>
+      void emit(IA32_t<W, N> opcode) {
+         emit_REX_prefix(W, false, false, false);
+         for(int i = 0; i < N; ++i) {
+            emit_bytes(opcode.opcode[i]);
+         }
+      }
+      template<bool W, int N, typename RM>
+      void emit(IA32_t<W, N> opcode, RM r_m, int reg) {
+         emit_REX_prefix(W, r_m, reg);
+         for(int i = 0; i < N; ++i) {
+            emit_bytes(opcode.opcode[i]);
+         }
+         emit_modrm_sib_disp(r_m, reg);
+      }
+      template<bool W, int N, typename RM>
+      void emit(IA32_t<W, N> opcode, imm8 imm, RM r_m, int reg) {
+         emit(opcode, r_m, reg);
+         emit_bytes(static_cast<uint8_t>(imm));
+      }
+      template<typename T, typename RM>
+      void emit(IA32_opext<T> opcode, RM r_m) {
+         emit(opcode.base, r_m, opcode.opext);
+      }
+      template<typename T, typename RM>
+      void emit(IA32_opext<T> opcode, imm8 imm, RM r_m) {
+         emit(opcode.base, imm, r_m, opcode.opext);
+      }
+
+      void* emit_branch8(Jcc opcode) {
+         emit_bytes(opcode.opcode);
+         return emit_branch_target8();
+      }
+
+      void* emit_branchcc32(Jcc opcode) {
+         emit_bytes(0x0f, 0x10 + opcode.opcode);
+         return emit_branch_target32();
       }
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
@@ -3692,6 +3945,22 @@ namespace eosio { namespace vm {
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
       void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src2 & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src2, dest);
+         emit_byte(static_cast<uint8_t>(src1));
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 src1, general_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src2 & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src2, dest);
+         emit_byte(static_cast<uint8_t>(src1));
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 src1, xmm_register src2, general_register dest) {
          emit_VEX_prefix(dest & 8, false, src2 & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src2, dest);
@@ -3782,6 +4051,12 @@ namespace eosio { namespace vm {
         emit_operand32(3735928555u - static_cast<uint32_t>(reinterpret_cast<uintptr_t>(code)));
         return result;
      }
+
+      void* emit_branch_target8() {
+         void* result = code;
+         emit_bytes(0xcc);
+         return result;
+      }
 
       void emit_check_call_depth() {
          // decl %ebx

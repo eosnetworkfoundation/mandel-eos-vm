@@ -44,7 +44,8 @@ inline bool check_nan(const std::optional<eosio::vm::operand_stack_elem>& v) {
    return visit(eosio::vm::overloaded{[](eosio::vm::i32_const_t){ return false; },
                                       [](eosio::vm::i64_const_t){ return false; },
                                       [](eosio::vm::f32_const_t f) { return std::isnan(f.data.f); },
-                                      [](eosio::vm::f64_const_t f) { return std::isnan(f.data.f); }}, *v);
+                                      [](eosio::vm::f64_const_t f) { return std::isnan(f.data.f); },
+                                      [](eosio::vm::v128_const_t){ return false; }}, *v);
 }
 
 inline eosio::vm::wasm_allocator* get_wasm_allocator() {

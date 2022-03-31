@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <eosio/vm/v128.hpp>
 
 /* clang-format off */
 #define EOS_VM_CONTROL_FLOW_OPS(opcode_macro)   \
@@ -636,6 +637,60 @@
       } data;                                                                                                          \
       static constexpr uint8_t opcode = code;                                                                          \
    };
+
+#define EOS_VM_CREATE_VEC_MEMORY_TYPES(name, code)                                                                     \
+   struct EOS_VM_OPCODE_T(name) {                                                                                      \
+      EOS_VM_OPCODE_T(name)() = default;                                                                               \
+      uint32_t flags_align;                                                                                            \
+      uint32_t offset;                                                                                                 \
+      static constexpr uint8_t opcode_prefix = 0xfd;                                                                   \
+      static constexpr uint8_t opcode = code;                                                                          \
+   };
+
+#define EOS_VM_CREATE_VEC_LANE_MEMORY_TYPES(name, code)                                                                \
+   struct EOS_VM_OPCODE_T(name) {                                                                                      \
+      EOS_VM_OPCODE_T(name)() = default;                                                                               \
+      uint32_t flags_align;                                                                                            \
+      uint32_t offset;                                                                                                 \
+      uint8_t  laneidx;                                                                                                \
+      static constexpr uint8_t opcode_prefix = 0xfd;                                                                   \
+      static constexpr uint8_t opcode = code;                                                                          \
+   };
+
+#define EOS_VM_CREATE_V128_CONSTANT_TYPE(name, code)                                                                   \
+   struct EOS_VM_OPCODE_T(name) {                                                                                      \
+      EOS_VM_OPCODE_T(name)() = default;                                                                               \
+      explicit EOS_VM_OPCODE_T(name)(v128_t n) { data = n; }                                                           \
+      v128_t data;                                                                                                     \
+      static constexpr uint8_t opcode_prefix = 0xfd;                                                                   \
+      static constexpr uint8_t opcode = code;                                                                          \
+   };
+
+#define EOS_VM_CREATE_VEC_SHUFFLE_TYPE(name, code)                                                                     \
+   struct EOS_VM_OPCODE_T(name) {                                                                                      \
+      EOS_VM_OPCODE_T(name)() = default;                                                                               \
+      explicit EOS_VM_OPCODE_T(name)(uint8_t lanes[16]) { std::memcpy(this->lanes, lanes, 16); }                       \
+      uint8_t lanes[16];                                                                                               \
+      static constexpr uint8_t opcode_prefix = 0xfd;                                                                   \
+      static constexpr uint8_t opcode = code;                                                                          \
+   };
+
+#define EOS_VM_CREATE_VEC_LANE_TYPES(name, code)                                                                       \
+   struct EOS_VM_OPCODE_T(name) {                                                                                      \
+      EOS_VM_OPCODE_T(name)() = default;                                                                               \
+      explicit EOS_VM_OPCODE_T(name)(uint8_t laneidx) { this->laneidx = laneidx; }                                     \
+      uint8_t laneidx;                                                                                                 \
+      static constexpr uint8_t opcode_prefix = 0xfd;                                                                   \
+      static constexpr uint8_t opcode = code;                                                                          \
+   };
+
+#define EOS_VM_CREATE_VEC_TYPES(name, code)                                                                            \
+   struct EOS_VM_OPCODE_T(name) {                                                                                      \
+      EOS_VM_OPCODE_T(name)() = default;                                                                               \
+      static constexpr uint8_t opcode_prefix = 0xfd;                                                                   \
+      static constexpr uint8_t opcode = code;                                                                          \
+   };
+
 
 #define EOS_VM_IDENTITY(name, code) eosio::vm::EOS_VM_OPCODE_T(name),
 #define EOS_VM_IDENTITY_END(name, code) eosio::vm::EOS_VM_OPCODE_T(name)
