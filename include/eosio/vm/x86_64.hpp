@@ -2819,7 +2819,7 @@ namespace eosio { namespace vm {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
          emit_vmovups(*rsp, xmm1);
-         emit(VPANDN, xmm0, xmm1, xmm0);
+         emit(VPANDN, xmm1, xmm0, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
 
@@ -2839,13 +2839,12 @@ namespace eosio { namespace vm {
 
       void emit_v128_bitselect() {
          emit_vmovups(*rsp, xmm2);
-         // vmovups (%rsp + 16), xmm1
-         emit_bytes(0xc5, 0xf8, 0x10, 0x4c, 0x24, 0x10);
+         emit_vmovups(*(rsp + 16), xmm1);
          emit_add(32, rsp);
          emit_vmovups(*rsp, xmm0);
          // With AVX512: VPTERNLOGD 0xAC
-         emit(VPAND, xmm0, xmm1, xmm1);
-         emit(VPANDN, xmm0, xmm2, xmm0);
+         emit(VPAND, xmm0, xmm2, xmm0);
+         emit(VPANDN, xmm1, xmm2, xmm1);
          emit(VPOR, xmm0, xmm1, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
@@ -2853,9 +2852,9 @@ namespace eosio { namespace vm {
       void emit_v128_any_true() {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
-         emit(VPTEST, xmm0, xmm0);
          // xor %eax, %eax
          emit_bytes(0x31, 0xc0);
+         emit(VPTEST, xmm0, xmm0);
          // setnz %al
          emit_bytes(0x0f, 0x95, 0xc0);
          emit_push(rax);
@@ -2897,9 +2896,9 @@ namespace eosio { namespace vm {
          emit_const_zero(xmm0);
          emit(VPCMPEQB, *rsp, xmm0, xmm0);
          emit_add(16, rsp);
-         emit(VPTEST, xmm0, xmm0);
          // xor %eax, %eax
          emit_bytes(0x31, 0xc0);
+         emit(VPTEST, xmm0, xmm0);
          // setz %al
          emit_bytes(0x0f, 0x94, 0xc0);
          emit_push(rax);
@@ -2953,7 +2952,7 @@ namespace eosio { namespace vm {
          emit(VPSLLW_c, imm8{8}, xmm0, xmm1);
          emit(VPSRAW_c, imm8{8}, xmm1, xmm1);
          emit(VPSLLW, xmm2, xmm3, xmm3);
-         emit(VPANDN, xmm3, xmm1, xmm1);
+         emit(VPANDN, xmm1, xmm3, xmm1);
          emit(VPAND, xmm3, xmm0, xmm0);
          emit(VPOR, xmm1, xmm0, xmm0);
          emit(VPSRAW, xmm2, xmm0, xmm0);
@@ -2969,9 +2968,9 @@ namespace eosio { namespace vm {
          emit_const_ones(xmm1);
          emit(VPSLLW_c, imm8{8}, xmm1, xmm1);
          emit(VPSRLW, xmm2, xmm1, xmm1);
-         emit(VPBROADCASTB, xmm1, xmm1, xmm1);
+         emit(VPBROADCASTB, xmm1, xmm1);
          emit(VPSRLW, xmm2, xmm0, xmm0);
-         emit(VPANDN, xmm1, xmm0, xmm0);
+         emit(VPANDN, xmm0, xmm1, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
 
@@ -3064,9 +3063,9 @@ namespace eosio { namespace vm {
          emit_const_zero(xmm0);
          emit(VPCMPEQW, *rsp, xmm0, xmm0);
          emit_add(16, rsp);
-         emit(VPTEST, xmm0, xmm0);
          // xor %eax, %eax
          emit_bytes(0x31, 0xc0);
+         emit(VPTEST, xmm0, xmm0);
          // setz %al
          emit_bytes(0x0f, 0x94, 0xc0);
          emit_push(rax);
@@ -3074,7 +3073,8 @@ namespace eosio { namespace vm {
 
       void emit_i16x8_bitmask() {
          emit_const_zero(xmm0);
-         emit(VPACKUSWB, *rsp, xmm0, xmm0);
+         emit(VPCMPGTW, *rsp, xmm0, xmm1);
+         emit(VPACKSSWB, xmm0, xmm1, xmm0);
          emit_add(16, rsp);
          emit(VPMOVMSKB, xmm0, rax);
          emit_push(rax);
@@ -3244,9 +3244,9 @@ namespace eosio { namespace vm {
          emit_const_zero(xmm0);
          emit(VPCMPEQD, *rsp, xmm0, xmm0);
          emit_add(16, rsp);
-         emit(VPTEST, xmm0, xmm0);
          // xor %eax, %eax
          emit_bytes(0x31, 0xc0);
+         emit(VPTEST, xmm0, xmm0);
          // setz %al
          emit_bytes(0x0f, 0x94, 0xc0);
          emit_push(rax);
@@ -3386,9 +3386,9 @@ namespace eosio { namespace vm {
          emit_const_zero(xmm0);
          emit(VPCMPEQQ, *rsp, xmm0, xmm0);
          emit_add(16, rsp);
-         emit(VPTEST, xmm0, xmm0);
          // xor %eax, %eax
          emit_bytes(0x31, 0xc0);
+         emit(VPTEST, xmm0, xmm0);
          // setz %al
          emit_bytes(0x0f, 0x94, 0xc0);
          emit_push(rax);
@@ -3679,7 +3679,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_vmovd(general_register src, xmm_register dest) {
-         emit(VEX_128_66_0F_W0{0x7e}, src, dest);
+         emit(VEX_128_66_0F_W0{0x6e}, src, dest);
       }
 
       template<typename T>
