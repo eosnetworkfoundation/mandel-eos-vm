@@ -393,7 +393,7 @@ namespace eosio { namespace vm {
          // callq TARGET
          emit_bytes(0xe8);
          void * branch = emit_branch_target32();
-         emit_multipop(ft.param_types.size());
+         emit_multipop(ft);
          register_call(branch, funcnum);
          if(ft.return_count != 0) {
             if(ft.return_type == v128) {
@@ -433,7 +433,7 @@ namespace eosio { namespace vm {
          emit_operand32(functypeidx);
          // callq *%rax
          emit_bytes(0xff, 0xd0);
-         emit_multipop(ft.param_types.size());
+         emit_multipop(ft);
          if(ft.return_count != 0){
             if(ft.return_type == v128) {
                emit_sub(16, rsp);
@@ -4162,6 +4162,21 @@ namespace eosio { namespace vm {
                emit_bytes(0x50);
             }
          }
+      }
+
+      void emit_multipop(const func_type& ft) {
+         uint32_t total_size = 0;
+         for(uint32_t i = 0; i < ft.param_types.size(); ++i) {
+            if(ft.param_types[i] == v128) {
+               total_size += 16;
+            } else {
+               total_size += 8;
+            }
+            if(total_size > 0x7fffffffu) {
+               unimplemented();
+            }
+         }
+         emit_add(total_size, rsp);
       }
 
       // pops an i32 wasm address off the stack
