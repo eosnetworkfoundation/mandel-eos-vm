@@ -3231,12 +3231,12 @@ namespace eosio { namespace vm {
       }
 
       void emit_i32x4_abs() {
-         emit_v128_unop(VPABSW);
+         emit_v128_unop(VPABSD);
       }
 
       void emit_i32x4_neg() {
          emit_const_zero(xmm0);
-         emit(VPSUBW, *rsp, xmm0, xmm0);
+         emit(VPSUBD, *rsp, xmm0, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
 
@@ -3328,7 +3328,7 @@ namespace eosio { namespace vm {
       void emit_i32x4_extmul_low_i16x8_s() {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
-         emit_vmovups(*rsp, xmm0);
+         emit_vmovups(*rsp, xmm1);
          emit(VPMOVSXWD, xmm0, xmm0);
          emit(VPMOVSXWD, xmm1, xmm1);
          emit(VPMULLD, xmm0, xmm1, xmm0);
@@ -3348,7 +3348,7 @@ namespace eosio { namespace vm {
       void emit_i32x4_extmul_low_i16x8_u() {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
-         emit_vmovups(*rsp, xmm0);
+         emit_vmovups(*rsp, xmm1);
          emit(VPMOVZXWD, xmm0, xmm0);
          emit(VPMOVZXWD, xmm1, xmm1);
          emit(VPMULLD, xmm0, xmm1, xmm0);

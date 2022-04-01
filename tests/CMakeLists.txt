@@ -55,9 +55,12 @@ foreach(testcase
     #simd_address simd_align simd_bit_shift simd_bitwise simd_boolean simd_const
     #simd_conversions
     #simd_i8x16_arith simd_i8x16_arith2 simd_i8x16_cmp simd_i8x16_sat_arith
-    simd_i16x8_arith simd_i16x8_arith2 simd_i16x8_cmp simd_i16x8_extadd_pairwise_i8x16
-    simd_i16x8_extmul_i8x16 simd_i16x8_q15mulr_sat_s simd_i16x8_sat_arith
-                 )
+    #simd_i16x8_arith simd_i16x8_arith2 simd_i16x8_cmp simd_i16x8_extadd_pairwise_i8x16
+    #simd_i16x8_extmul_i8x16 simd_i16x8_q15mulr_sat_s simd_i16x8_sat_arith
+    simd_i32x4_arith simd_i32x4_arith2 simd_i32x4_cmp simd_i32x4_dot_i16x8
+    simd_i32x4_extadd_pairwise_i16x8 simd_i32x4_extmul_i16x8
+    # simd_i32x4_trunc_sat_f32x4 simd_i32x4_trunc_sat_f64x2
+    )
    add_spec_test(${testcase})
 endforeach()
 
