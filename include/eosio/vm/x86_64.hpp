@@ -2570,23 +2570,16 @@ namespace eosio { namespace vm {
       void emit_i8x16_swizzle()
       {
          // test x>15 and saturate to 255
-         emit_movups(*rsp, xmm0);
+         emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
-         // mov $0x0F0F0F0F, %eax
-         emit_bytes(0xb8);
-         emit_operand32(0x0f0f0f0f);
-         // vmovd %eax, %xmm1
-         emit_bytes(0xc5, 0xf9, 0x6e, 0xc8);
-         // vpshufd $0, %xmm1, %xmm1
-         emit_bytes(0xc5, 0xf9, 0x70, 0xc9, 0x00);
-         // vpcmpgtb %xmm1, %xmm0, %xmm1
-         emit_bytes(0xc5, 0xf9, 0x64, 0xc9);
-         // vpor %xmm0, %xmm1, %xmm1
-         emit_bytes(0xc5, 0xf1, 0xeb, 0xc8);
-         emit_movups(*rsp, xmm0);
-         // vpshufb %xmm0, %xmm1, %xmm0
-         emit_bytes(0xc4, 0xe2, 0x71, 0x00, 0xc0);
-         emit_movups(xmm0, *rsp);
+         emit_movd(0x0f0f0f0f, eax);
+         emit_vmovd(eax, xmm1);
+         emit(VPSHUFD, imm8{0}, xmm1, xmm1);
+         emit(VPCMPGTB, xmm1, xmm0, xmm1);
+         emit(VPOR, xmm0, xmm1, xmm1);
+         emit_vmovups(*rsp, xmm0);
+         emit(VPSHUFB, xmm1, xmm0, xmm0);
+         emit_vmovups(xmm0, *rsp);
       }
 
       void emit_i8x16_splat()
@@ -3266,12 +3259,12 @@ namespace eosio { namespace vm {
       void emit_i32x4_extend_high_i16x8_s() {
          emit_vmovups(*rsp, xmm0);
          emit(VPSRLDQ_c, imm8{8}, xmm0, xmm0);
-         emit(VPMOVZXWD, xmm0, xmm0);
+         emit(VPMOVSXWD, xmm0, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
 
       void emit_i32x4_extend_low_i16x8_u() {
-         emit_v128_unop(VPMOVSXWD);
+         emit_v128_unop(VPMOVZXWD);
       }
 
       void emit_i32x4_extend_high_i16x8_u() {
@@ -3606,6 +3599,12 @@ namespace eosio { namespace vm {
 
       void emit_movd(uint32_t src, disp_memory_ref dest) {
          emit(IA32(0xc7)/0, dest);
+         emit_operand32(src);
+      }
+
+      void emit_movd(uint32_t src, general_register dest) {
+         emit_REX_prefix(false, false, false, dest & 8);
+         emit_bytes(0xb8 | (dest & 7));
          emit_operand32(src);
       }
 
