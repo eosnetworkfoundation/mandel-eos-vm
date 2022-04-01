@@ -22,7 +22,8 @@ set( WASM_SPEC_TESTS_LOCATION "" CACHE STRING "The location of the webassembly s
 find_program(WAST2JSON wast2json)
 
 # These tests require manual maintenance
-set(SPEC_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/spec/e_memory_tests.cpp)
+#set(SPEC_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/spec/e_memory_tests.cpp)
+set(SPEC_TESTS)
 
 macro( add_spec_test_impl name source)
    list( APPEND SPEC_TESTS ${CMAKE_CURRENT_SOURCE_DIR}/spec/${name}_tests.cpp )
@@ -49,6 +50,11 @@ macro( add_spec_test name )
       message("Using existing: ${name}_tests.cpp")
    endif()
 endmacro()
+
+foreach(testcase simd_i8x16_arith simd_i8x16_arith2 simd_i8x16_cmp simd_i8x16_sat_arith
+                 )
+   add_spec_test(${testcase})
+endforeach()
 
 if (ENABLE_SPEC_TESTS)
 

@@ -284,7 +284,12 @@ namespace eosio { namespace vm {
          const func_type& ft = _mod.get_function_type(func_index);
          this->type_check_args(ft, static_cast<Args&&>(args)...);
          native_value_extended result;
-         native_value args_raw[] = { transform_arg(static_cast<Args&&>(args))... };
+         constexpr std::size_t args_count = (0 + ... + (to_wasm_type_v<detail::type_converter_t<Host>, Args> == types::v128 ? 2 : 1));
+         native_value args_raw[args_count];
+         {
+            native_value* p = args_raw;
+            ((append_arg(static_cast<Args&&>(args), p)), ...);
+         }
 
          try {
             if (func_index < _mod.get_imported_functions_size()) {
@@ -316,11 +321,11 @@ namespace eosio { namespace vm {
                   }};
 
                   vm::invoke_with_signal_handler([&]() {
-                     result = execute<sizeof...(Args)>(args_raw, fn, this, base_type::linear_memory(), stack, ft.return_type);
+                     result = execute<args_count>(args_raw, fn, this, base_type::linear_memory(), stack, ft.return_type);
                   }, handle_signal);
                } else {
                   vm::invoke_with_signal_handler([&]() {
-                     result = execute<sizeof...(Args)>(args_raw, fn, this, base_type::linear_memory(), stack, ft.return_type);
+                     result = execute<args_count>(args_raw, fn, this, base_type::linear_memory(), stack, ft.return_type);
                   }, handle_signal);
                }
             }
@@ -397,6 +402,24 @@ namespace eosio { namespace vm {
       static constexpr bool async_backtrace() { return EnableBacktrace; }
 
    protected:
+
+      template<typename T>
+      void append_arg(T&& value, native_value*& out) {
+         auto tc = detail::type_converter_t<Host>{_host, get_interface()};
+         auto transformed_value = detail::resolve_result(tc, static_cast<T&&>(value)).data;
+         if constexpr (std::is_same_v<decltype(transformed_value), v128_t>) {
+            out[0] = transformed_value.high;
+            out[1] = transformed_value.low;
+            out += 2;
+         } else {
+            static_assert(sizeof(transformed_value) <= 8);
+            // make sure that the garbage bits are always zero.
+            native_value result;
+            std::memset(out, 0, sizeof(*out));
+            std::memcpy(out, &transformed_value, sizeof(transformed_value));
+            ++out;
+         }
+      }
 
       template<typename T>
       native_value transform_arg(T&& value) {

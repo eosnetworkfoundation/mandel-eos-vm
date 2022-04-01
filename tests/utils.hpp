@@ -48,6 +48,51 @@ eosio::vm::v128_t make_v128_i8(T... x) {
    return result;
 }
 
+template<typename... T>
+eosio::vm::v128_t make_v128_i16(T... x) {
+   static_assert(sizeof...(T) == 8);
+   uint16_t a[8] = {static_cast<uint16_t>(x)...};
+   eosio::vm::v128_t result;
+   memcpy(&result, &a, 16);
+   return result;
+}
+
+template<typename... T>
+eosio::vm::v128_t make_v128_i32(T... x) {
+   static_assert(sizeof...(T) == 4);
+   uint32_t a[4] = {static_cast<uint32_t>(x)...};
+   eosio::vm::v128_t result;
+   memcpy(&result, &a, 16);
+   return result;
+}
+
+template<typename... T>
+eosio::vm::v128_t make_v128_i64(T... x) {
+   static_assert(sizeof...(T) == 2);
+   uint64_t a[2] = {static_cast<uint64_t>(x)...};
+   eosio::vm::v128_t result;
+   memcpy(&result, &a, 16);
+   return result;
+}
+
+template<typename... T>
+eosio::vm::v128_t make_v128_f32(T... x) {
+   static_assert(sizeof...(T) == 4);
+   uint32_t a[4] = {static_cast<uint32_t>(x)...};
+   eosio::vm::v128_t result;
+   memcpy(&result, &a, 16);
+   return result;
+}
+
+template<typename... T>
+eosio::vm::v128_t make_v128_f64(T... x) {
+   static_assert(sizeof...(T) == 2);
+   uint64_t a[2] = {static_cast<uint64_t>(x)...};
+   eosio::vm::v128_t result;
+   memcpy(&result, &a, 16);
+   return result;
+}
+
 inline bool check_nan(const std::optional<eosio::vm::operand_stack_elem>& v) {
    return visit(eosio::vm::overloaded{[](eosio::vm::i32_const_t){ return false; },
                                       [](eosio::vm::i64_const_t){ return false; },
@@ -61,5 +106,10 @@ inline eosio::vm::wasm_allocator* get_wasm_allocator() {
    return &alloc;
 }
 
+#if 0
 #define BACKEND_TEST_CASE(name, tags) \
   TEMPLATE_TEST_CASE(name, tags, eosio::vm::interpreter, eosio::vm::jit)
+#else
+#define BACKEND_TEST_CASE(name, tags) \
+  TEMPLATE_TEST_CASE(name, tags, eosio::vm::jit)
+#endif

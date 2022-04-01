@@ -172,6 +172,7 @@ namespace eosio { namespace vm {
       static constexpr std::size_t max_epilogue_size = 18;
       void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& locals, uint32_t funcnum) {
          _ft = &_mod.types[_mod.functions[funcnum]];
+         _params = function_parameters{_ft};
          // FIXME: This is not a tight upper bound
          const std::size_t instruction_size_ratio_upper_bound = use_softfloat?(Context::async_backtrace()?63:49):79;
          std::size_t code_size = max_prologue_size + _mod.code[funcnum].size * instruction_size_ratio_upper_bound + max_epilogue_size;
@@ -479,11 +480,15 @@ namespace eosio { namespace vm {
          //   ...
          //   localN
          if (local_idx < _ft->param_types.size()) {
-            // mov 8*(local_idx)(%RBP), RAX
-            emit_bytes(0x48, 0x8b, 0x85);
-            emit_operand32(8 * (_ft->param_types.size() - local_idx + 1));
-            // push RAX
-            emit_bytes(0x50);
+            auto addr = *(rbp + _params.get_frame_offset(local_idx));
+            if (_ft->param_types[local_idx] != types::v128) {
+               emit_movq(addr, rax);
+               emit_push(rax);
+            } else {
+               emit_vmovups(addr, xmm0);
+               emit_sub(16, rsp);
+               emit_vmovups(xmm0, *rsp);
+            }
          } else {
             // mov -8*(local_idx+1)(%RBP), RAX
             emit_bytes(0x48, 0x8b, 0x85);
@@ -496,11 +501,15 @@ namespace eosio { namespace vm {
       void emit_set_local(uint32_t local_idx) {
          auto icount = fixed_size_instr(8);
          if (local_idx < _ft->param_types.size()) {
-            // pop RAX
-            emit_bytes(0x58);
-            // mov RAX, -8*local_idx(EBP)
-            emit_bytes(0x48, 0x89, 0x85);
-            emit_operand32(8 * (_ft->param_types.size() - local_idx + 1));
+            auto addr = *(rbp + _params.get_frame_offset(local_idx));
+            if (_ft->param_types[local_idx] != types::v128) {
+               emit_pop(rax);
+               emit_movq(rax, addr);
+            } else {
+               emit_vmovups(*rsp, xmm0);
+               emit_add(16, rsp);
+               emit_vmovups(xmm0, addr);
+            }
          } else {
             // pop RAX
             emit_bytes(0x58);
@@ -511,15 +520,16 @@ namespace eosio { namespace vm {
       }
 
       void emit_tee_local(uint32_t local_idx) {
-         auto icount = fixed_size_instr(9);
+         auto icount = fixed_size_instr(9); // FIXME
          if (local_idx < _ft->param_types.size()) {
-            // pop RAX
-            emit_bytes(0x58);
-            // push RAX
-            emit_bytes(0x50);
-            // mov RAX, -8*local_idx(EBP)
-            emit_bytes(0x48, 0x89, 0x85);
-            emit_operand32(8 * (_ft->param_types.size() - local_idx + 1));
+            auto addr = *(rbp + _params.get_frame_offset(local_idx));
+            if (_ft->param_types[local_idx] != types::v128) {
+               emit_movq(*rsp, rax);
+               emit_movq(rax, *(rbp + _params.get_frame_offset(local_idx)));
+            } else {
+               emit_vmovups(*rsp, xmm0);
+               emit_vmovups(xmm0, addr);
+            }
          } else {
             // pop RAX
             emit_bytes(0x58);
@@ -2852,7 +2862,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i8x16_neg() {
-         emit_const_zero(xmm1);
+         emit_const_zero(xmm0);
          emit(VPSUBB, *rsp, xmm0, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
@@ -3648,8 +3658,16 @@ namespace eosio { namespace vm {
          }
       }
       
+      void emit_vmovups(disp_memory_ref mem, xmm_register reg) {
+         emit(VEX_128_0F_WIG{0x10}, mem, reg);
+      }
+      
       void emit_vmovups(simple_memory_ref mem, xmm_register reg) {
          emit(VEX_128_0F_WIG{0x10}, mem, reg);
+      }
+
+      void emit_vmovups(xmm_register reg, disp_memory_ref mem) {
+         emit(VEX_128_0F_WIG{0x11}, mem, reg);
       }
 
       void emit_vmovups(xmm_register reg, simple_memory_ref mem) {
@@ -3925,6 +3943,13 @@ namespace eosio { namespace vm {
       }
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, disp_memory_ref src1, xmm_register src2) {
+         emit_VEX_prefix(src2 & 8, false, src1.reg & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_bytes(opcode.opcode);
+         emit_modrm_sib_disp(src1, src2);
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
       void emit(VEX<Sz, pp, mmmm, W> opcode, simple_memory_ref src1, xmm_register src2) {
          emit_VEX_prefix(src2 & 8, false, src1.reg & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
@@ -4034,9 +4059,33 @@ namespace eosio { namespace vm {
          return fixed_size_instr(use_softfloat?(Context::async_backtrace()?softbt_expected:soft_expected):hard_expected);
       }
 
+      struct function_parameters {
+         function_parameters() = default;
+         function_parameters(const func_type* ft) {
+            uint32_t current_offset = 16;
+            offsets.resize(ft->param_types.size());
+            for(uint32_t i = 0; i < ft->param_types.size(); ++i) {
+               if(current_offset > 0x7fffffffu) {
+                  unimplemented(); // cannot represent the offset as a 32-bit immediate
+               }
+               offsets[offsets.size() - i - 1] = current_offset;
+               if(ft->param_types[ft->param_types.size() - i - 1] == types::v128) {
+                  current_offset += 16;
+               } else {
+                  current_offset += 8;
+               }
+            }
+         }
+         int32_t get_frame_offset(uint32_t localidx) {
+            return offsets[localidx];
+         }
+         std::vector<uint32_t> offsets;
+      };
+
       module& _mod;
       void * _code_segment_base;
       const func_type* _ft;
+      function_parameters _params;
       unsigned char * _code_start;
       unsigned char * _code_end;
       unsigned char * code;

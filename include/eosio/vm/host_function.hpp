@@ -130,6 +130,8 @@ namespace eosio { namespace vm {
          else if constexpr (std::is_void_v<std::decay_t<std::remove_pointer_t<T>>>)
             return i32_const_t{ static_cast<uint32_t>(reinterpret_cast<uintptr_t>(val) -
                                                       reinterpret_cast<uintptr_t>(this->access())) };
+         else if constexpr (std::is_same_v<std::decay_t<T>, v128_t>)
+            return v128_const_t{ val };
          else
             return no_match_t{};
       }
@@ -350,6 +352,8 @@ namespace eosio { namespace vm {
    constexpr auto to_wasm_type<f32_const_t>() { return types::f32; }
    template<>
    constexpr auto to_wasm_type<f64_const_t>() { return types::f64; }
+   template<>
+   constexpr auto to_wasm_type<v128_const_t>() { return types::v128; }
 
    template <typename TC, typename T>
    constexpr auto to_wasm_type_v = to_wasm_type<decltype(detail::resolve_result(std::declval<TC&>(), std::declval<T>()))>();

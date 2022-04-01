@@ -1154,6 +1154,30 @@ std::string cpp_string(const picojson::value& x) {
       return "std::string(" + result + ", " + std::to_string(original.size()) + ")";
 }
 
+void translate_arg(std::ostream& ss, picojson::object arg) {
+   if (arg["type"].to_str() == "i32")
+      ss << "UINT32_C(" << arg["value"].to_str() << ")";
+   else if (arg["type"].to_str() == "i64")
+      ss << "UINT64_C(" << arg["value"].to_str() << ")";
+   else if (arg["type"].to_str() == "f32")
+      ss << "bit_cast<float>(UINT32_C(" << arg["value"].to_str() << "))";
+   else if (arg["type"].to_str() == "f64")
+      ss << "bit_cast<double>(UINT64_C(" << arg["value"].to_str() << "))";
+   else if (arg["type"].to_str() == "v128") {
+      ss << "make_v128_" << arg["lane_type"].to_str() << "(";
+      bool first = true;
+      for(auto elem : arg["value"].get<picojson::array>()) {
+         if(!first) ss << ",";
+         else first = false;
+         ss << elem.to_str();
+      }
+      ss << ")";
+   } else {
+      std::cerr << "unknown type: " << arg["type"].to_str() << std::endl;
+      std::exit(1);
+   }
+}
+
 string generate_test_call(picojson::object obj, string expected_t, string expected_v) {
    stringstream ss;
 
@@ -1176,14 +1200,7 @@ string generate_test_call(picojson::object obj, string expected_t, string expect
    for (picojson::value argv : obj["args"].get<picojson::array>()) {
       ss << ", ";
       picojson::object arg = argv.get<picojson::object>();
-      if (arg["type"].to_str() == "i32")
-         ss << "UINT32_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "i64")
-         ss << "UINT64_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "f32")
-         ss << "bit_cast<float>(UINT32_C(" << arg["value"].to_str() << "))";
-      else
-         ss << "bit_cast<double>(UINT64_C(" << arg["value"].to_str() << "))";
+      translate_arg(ss, arg);
    }
    if (expected_t == "i32") {
       ss << ")->to_ui32() == ";
@@ -1217,14 +1234,7 @@ string generate_test_call_nan(picojson::object obj) {
    for (picojson::value argv : obj["args"].get<picojson::array>()) {
       ss << ", ";
       picojson::object arg = argv.get<picojson::object>();
-      if (arg["type"].to_str() == "i32")
-         ss << "UINT32_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "i64")
-         ss << "UINT64_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "f32")
-         ss << "bit_cast<float>(UINT32_C(" << arg["value"].to_str() << "))";
-      else
-         ss << "bit_cast<double>(UINT64_C(" << arg["value"].to_str() << "))";
+      translate_arg(ss, arg);
    }
    ss << "))";
    return ss.str();
@@ -1239,14 +1249,7 @@ string generate_trap_call(picojson::object obj) {
    for (picojson::value argv : obj["args"].get<picojson::array>()) {
       ss << ", ";
       picojson::object arg = argv.get<picojson::object>();
-      if (arg["type"].to_str() == "i32")
-         ss << "UINT32_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "i64")
-         ss << "UINT64_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "f32")
-         ss << "bit_cast<float>(UINT32_C(" << arg["value"].to_str() << "))";
-      else
-         ss << "bit_cast<double>(UINT64_C(" << arg["value"].to_str() << "))";
+      translate_arg(ss, arg);
    }
    ss << "), std::exception";
    return ss.str();
@@ -1261,14 +1264,7 @@ string generate_call(picojson::object obj) {
    for (picojson::value argv : obj["args"].get<picojson::array>()) {
       ss << ", ";
       picojson::object arg = argv.get<picojson::object>();
-      if (arg["type"].to_str() == "i32")
-         ss << "UINT32_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "i64")
-         ss << "UINT64_C(" << arg["value"].to_str() << ")";
-      else if (arg["type"].to_str() == "f32")
-         ss << "bit_cast<float>(UINT32_C(" << arg["value"].to_str() << "))";
-      else
-         ss << "bit_cast<double>(UINT64_C(" << arg["value"].to_str() << "))";
+      translate_arg(ss, arg);
    }
    ss << ")";
    return ss.str();

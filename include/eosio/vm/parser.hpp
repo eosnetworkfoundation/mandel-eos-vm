@@ -517,7 +517,7 @@ namespace eosio { namespace vm {
          for (size_t i = 0; i < param_types.size(); i++) {
             uint8_t pt        = *code++;
             param_types.at(i) = pt;
-            EOS_VM_ASSERT(pt == types::i32 || pt == types::i64 || pt == types::f32 || pt == types::f64,
+            EOS_VM_ASSERT(pt == types::i32 || pt == types::i64 || pt == types::f32 || pt == types::f64 || (pt == types::v128 && detail::get_enable_simd(_options)),
                           wasm_parse_exception, "invalid function param type");
          }
          ft.param_types  = std::move(param_types);
@@ -526,7 +526,7 @@ namespace eosio { namespace vm {
          if (ft.return_count > 0) {
             uint8_t rt        = *code++;
             ft.return_type = rt;
-            EOS_VM_ASSERT(rt == types::i32 || rt == types::i64 || rt == types::f32 || rt == types::f64 || rt == types::v128,
+            EOS_VM_ASSERT(rt == types::i32 || rt == types::i64 || rt == types::f32 || rt == types::f64 || (rt == types::v128 && detail::get_enable_simd(_options)),
                           wasm_parse_exception, "invalid function return type");
          }
       }
@@ -838,6 +838,7 @@ namespace eosio { namespace vm {
                      expected_result = types::pseudo;
                   EOS_VM_ASSERT(expected_result == types::i32 || expected_result == types::i64 ||
                                 expected_result == types::f32 || expected_result == types::f64 ||
+                                (expected_result == types::v128 && detail::get_enable_simd(_options)) ||
                                 expected_result == types::pseudo, wasm_parse_exception,
                                 "Invalid type code in block");
                   pc_stack.push_back({op_stack.depth(), expected_result, expected_result, false, std::vector<branch_t>{}});
@@ -851,6 +852,7 @@ namespace eosio { namespace vm {
                      expected_result = types::pseudo;
                   EOS_VM_ASSERT(expected_result == types::i32 || expected_result == types::i64 ||
                                 expected_result == types::f32 || expected_result == types::f64 ||
+                                (expected_result == types::v128 && detail::get_enable_simd(_options)) ||
                                 expected_result == types::pseudo, wasm_parse_exception,
                                 "Invalid type code in loop");
                   auto pos = code_writer.emit_loop();
@@ -865,6 +867,7 @@ namespace eosio { namespace vm {
                      expected_result = types::pseudo;
                   EOS_VM_ASSERT(expected_result == types::i32 || expected_result == types::i64 ||
                                 expected_result == types::f32 || expected_result == types::f64 ||
+                                (expected_result == types::v128 && detail::get_enable_simd(_options)) ||
                                 expected_result == types::pseudo, wasm_parse_exception,
                                 "Invalid type code in if");
                   auto branch = code_writer.emit_if();
