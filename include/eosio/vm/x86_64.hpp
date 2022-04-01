@@ -3463,13 +3463,13 @@ namespace eosio { namespace vm {
       void emit_i64x2_mul() {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
-         emit_vmovups(*rsp, xmm0);
+         emit_vmovups(*rsp, xmm1);
          emit(VPMULUDQ, xmm0, xmm1, xmm2);
          emit(VPSHUFD, imm8{0xb1}, xmm0, xmm0);
          emit(VPMULLD, xmm0, xmm1, xmm0);
          emit(VPHADDD, xmm0, xmm0, xmm0);
          emit_const_zero(xmm1);
-         emit(VPUNPCKLWD, xmm0, xmm1, xmm0);
+         emit(VPUNPCKLDQ, xmm0, xmm1, xmm0);
          emit(VPADDQ, xmm0, xmm2, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
