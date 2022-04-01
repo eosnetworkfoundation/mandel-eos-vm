@@ -1478,7 +1478,7 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(i16x8_extadd_pairwise_i8x16_u, (v128), (v128));
                      NUMERIC_OP(i16x8_abs, (v128), (v128));
                      NUMERIC_OP(i16x8_neg, (v128), (v128));
-                     NUMERIC_OP(i16x8_q15mulr_sat_s, (v128), (v128));
+                     NUMERIC_OP(i16x8_q15mulr_sat_s, (v128, v128), (v128));
                      NUMERIC_OP(i16x8_all_true, (v128), (i32));
                      NUMERIC_OP(i16x8_bitmask, (v128), (i32));
                      NUMERIC_OP(i16x8_narrow_i32x4_s, (v128, v128), (v128));

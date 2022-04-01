@@ -2662,7 +2662,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i8x16_lt_u() {
-         emit_v128_irelop_minmax(VPMINUB, false);
+         emit_v128_irelop_minmax(VPMINUB, VPCMPEQB, false);
       }
 
       void emit_i8x16_gt_s() {
@@ -2670,7 +2670,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i8x16_gt_u() {
-         emit_v128_irelop_minmax(VPMAXUB, false);
+         emit_v128_irelop_minmax(VPMAXUB, VPCMPEQB, false);
       }
 
       void emit_i8x16_le_s() {
@@ -2678,7 +2678,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i8x16_le_u() {
-         emit_v128_irelop_minmax(VPMAXUB, true);
+         emit_v128_irelop_minmax(VPMAXUB, VPCMPEQB, true);
       }
 
       void emit_i8x16_ge_s() {
@@ -2686,7 +2686,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i8x16_ge_u() {
-         emit_v128_irelop_minmax(VPMINUB, true);
+         emit_v128_irelop_minmax(VPMINUB, VPCMPEQB, true);
       }
 
       // i8x16 compare
@@ -2704,7 +2704,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i16x8_lt_u() {
-         emit_v128_irelop_minmax(VPMINUW, false);
+         emit_v128_irelop_minmax(VPMINUW, VPCMPEQW, false);
       }
 
       void emit_i16x8_gt_s() {
@@ -2712,7 +2712,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i16x8_gt_u() {
-         emit_v128_irelop_minmax(VPMAXUW, false);
+         emit_v128_irelop_minmax(VPMAXUW, VPCMPEQW, false);
       }
 
       void emit_i16x8_le_s() {
@@ -2720,7 +2720,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i16x8_le_u() {
-         emit_v128_irelop_minmax(VPMAXUW, true);
+         emit_v128_irelop_minmax(VPMAXUW, VPCMPEQW, true);
       }
 
       void emit_i16x8_ge_s() {
@@ -2728,7 +2728,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i16x8_ge_u() {
-         emit_v128_irelop_minmax(VPMINUW, true);
+         emit_v128_irelop_minmax(VPMINUW, VPCMPEQW, true);
       }
 
       // i32x4 compare
@@ -2746,7 +2746,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i32x4_lt_u() {
-         emit_v128_irelop_minmax(VPMINUD, false);
+         emit_v128_irelop_minmax(VPMINUD, VPCMPEQD, false);
       }
 
       void emit_i32x4_gt_s() {
@@ -2754,7 +2754,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i32x4_gt_u() {
-         emit_v128_irelop_minmax(VPMAXUD, false);
+         emit_v128_irelop_minmax(VPMAXUD, VPCMPEQD, false);
       }
 
       void emit_i32x4_le_s() {
@@ -2762,7 +2762,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i32x4_le_u() {
-         emit_v128_irelop_minmax(VPMAXUD, true);
+         emit_v128_irelop_minmax(VPMAXUD, VPCMPEQD, true);
       }
 
       void emit_i32x4_ge_s() {
@@ -2770,7 +2770,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_i32x4_ge_u() {
-         emit_v128_irelop_minmax(VPMINUD, true);
+         emit_v128_irelop_minmax(VPMINUD, VPCMPEQD, true);
       }
 
       // i64x2 compare
@@ -3054,7 +3054,7 @@ namespace eosio { namespace vm {
          emit(VPMULHRSW, *rsp, xmm0, xmm0);
          emit_const_ones(xmm1);
          emit(VPSLLW_c, imm8{15}, xmm1, xmm1);
-         emit(VPCMPEQB, xmm1, xmm0, xmm1);
+         emit(VPCMPEQW, xmm1, xmm0, xmm1);
          emit(VPXOR, xmm1, xmm0, xmm0);
          emit_vmovups(xmm0, *rsp);
       }
@@ -4274,13 +4274,13 @@ namespace eosio { namespace vm {
       // !(op(a,b) == b)
       // max -> gt
       // min -> lt
-      template<typename Op>
-      void emit_v128_irelop_minmax(Op opcode, bool flip_result) {
+      template<typename Op, typename Eq>
+      void emit_v128_irelop_minmax(Op opcode, Eq eq, bool flip_result) {
          emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
          // vp[min/max]us[b/w/d/q] (%rsp), xmm0, xmm1
          emit(opcode, *rsp, xmm0, xmm1);
-         emit(VPCMPEQB, xmm0, xmm1, xmm0);
+         emit(eq, xmm0, xmm1, xmm0);
          if(!flip_result) {
             emit_const_zero(xmm1);
             emit(VPCMPEQB, xmm1, xmm0, xmm0);
