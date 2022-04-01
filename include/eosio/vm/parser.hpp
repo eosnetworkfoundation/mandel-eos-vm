@@ -959,7 +959,7 @@ namespace eosio { namespace vm {
                   code++; // 0x00
                   break;
                }
-               case opcodes::drop: check_in_bounds(); code_writer.emit_drop(); op_stack.pop(); break;
+               case opcodes::drop: check_in_bounds(); code_writer.emit_drop(op_stack.pop()); break;
                case opcodes::select: {
                   check_in_bounds();
                   code_writer.emit_select();

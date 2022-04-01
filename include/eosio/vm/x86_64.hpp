@@ -446,9 +446,13 @@ namespace eosio { namespace vm {
          emit_check_call_depth_end();
       }
 
-      void emit_drop() {
-         // pop RAX
-         emit_bytes(0x58);
+      void emit_drop(uint8_t type) {
+         auto icount = variable_size_instr(1, 4);
+         if(type == types::v128) {
+            emit_add(16, rsp);
+         } else {
+            emit_pop(rax);
+         }
       }
 
       void emit_select() {
