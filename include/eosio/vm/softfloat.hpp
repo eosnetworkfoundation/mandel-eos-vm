@@ -463,5 +463,58 @@ inline double _eosio_ui32_to_f64( uint32_t a ) {
 inline double _eosio_ui64_to_f64( uint64_t a ) {
    return from_softfloat64(ui64_to_f64( a ));
 }
+
+template<typename F>
+inline v128_t apply_f32x4(v128_t a, v128_t b, F f) {
+   float32_t a_[4];
+   float32_t b_[4];
+   int32_t result_[4];
+   static_assert(sizeof(a_) == sizeof(a));
+   std::memcpy(&a_, &a, sizeof(a));
+   std::memcpy(&b_, &b, sizeof(b));
+   for(int i = 0; i < 4; ++i) {
+      result_[i] = f(a_[i], b_[i]);
+   }
+   v128_t result;
+   memcpy(&result, &result_, sizeof(result));
+   return result;
+}
+
+inline v128_t _eosio_f32x4_eq(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) -> std::int32_t {
+      return ::f32_eq(a, b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f32x4_ne(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) -> std::int32_t {
+      return !::f32_eq(a,b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f32x4_lt(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) -> std::int32_t {
+      return ::f32_lt(a,b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f32x4_gt(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) -> std::int32_t {
+      return ::f32_lt(b,a)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f32x4_le(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) -> std::int32_t {
+      return ::f32_le(a,b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f32x4_ge(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) -> std::int32_t {
+      return ::f32_le(b,a)?-1:0;
+   });
+}
+
 }} //ns eosio::vm
 #endif

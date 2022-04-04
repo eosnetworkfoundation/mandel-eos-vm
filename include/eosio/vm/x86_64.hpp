@@ -2782,6 +2782,32 @@ namespace eosio { namespace vm {
          emit_v128_irelop_cmp(VPCMPGTQ, true, true);
       }
 
+      // --------------------- f32x4 compare ------------------------
+
+      void emit_f32x4_eq() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_eq);
+      }
+
+      void emit_f32x4_ne() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_ne);
+      }
+
+      void emit_f32x4_lt() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_lt);
+      }
+
+      void emit_f32x4_gt() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_gt);
+      }
+
+      void emit_f32x4_le() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_le);
+      }
+
+      void emit_f32x4_ge() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_ge);
+      }
+
       // v128 logical ops
 
       void emit_v128_not() {
@@ -4669,6 +4695,29 @@ namespace eosio { namespace vm {
          fix_branch(emit_branch_target32(), fpe_handler);
       }
 
+      void emit_v128_binop_softfloat(v128_t (*softfloatfun)(v128_t, v128_t)) {
+         int32_t extra = emit_setup_backtrace();
+         emit_push(rdi);
+         emit_push(rsi);
+         emit_movq(*(rsp + (16 + extra)), rdx);
+         emit_movq(*(rsp + (24 + extra)), rcx);
+         emit_movq(*(rsp + (32 + extra)), rdi);
+         emit_movq(*(rsp + (40 + extra)), rsi);
+         emit_align_stack(rax);
+         // movabsq $softfloatfun, %rax
+         emit_bytes(0x48, 0xb8);
+         emit_operand_ptr(softfloatfun);
+         // callq *%rax
+         emit_bytes(0xff, 0xd0);
+         emit_restore_stack();
+         emit_pop(rsi);
+         emit_pop(rdi);
+         emit_restore_backtrace_basic(); // FIXME: clobbers rdx
+         emit_add(16 + extra, rsp);
+         emit_movq(rax, *rsp);
+         emit_movq(rdx, *(rsp + 8));
+      }
+
       void* emit_error_handler(void (*handler)()) {
          void* result = code;
          // andq $-16, %rsp;
@@ -4682,11 +4731,19 @@ namespace eosio { namespace vm {
       }
 
       void emit_align_stack() {
-         // mov %rsp, rcx; andq $-16, %rsp; push rcx; push %rcx
+         // mov %rsp, %rcx; andq $-16, %rsp; push rcx; push %rcx
          emit_bytes(0x48, 0x89, 0xe1);
          emit_bytes(0x48, 0x83, 0xe4, 0xf0);
          emit_bytes(0x51);
          emit_bytes(0x51);
+      }
+      void emit_align_stack(general_register temp) {
+         // mov %rsp, %temp; andq $-16, %rsp; push temp; push %temp
+         if(temp & 8) unimplemented();
+         emit_bytes(0x48, 0x89, 0xe0 | temp);
+         emit_bytes(0x48, 0x83, 0xe4, 0xf0);
+         emit_bytes(0x50 | temp);
+         emit_bytes(0x50 | temp);
       }
 
       void emit_restore_stack() {
