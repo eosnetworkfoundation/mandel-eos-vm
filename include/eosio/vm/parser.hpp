@@ -605,7 +605,7 @@ namespace eosio { namespace vm {
             auto count = parse_varuint32(code);
             auto type = *code++;
             if (detail::get_allow_invalid_empty_local_set(_options) && count == 0) type = types::i32;
-            EOS_VM_ASSERT(type == types::i32 || type == types::i64 || type == types::f32 || type == types::f64,
+            EOS_VM_ASSERT(type == types::i32 || type == types::i64 || type == types::f32 || type == types::f64 || (type == types::v128 && detail::get_enable_simd(_options)),
                           wasm_parse_exception, "invalid local type");
             local_checker.on_local(_options, type, count);
             locals.at(i).count = count;
@@ -978,19 +978,19 @@ namespace eosio { namespace vm {
                case opcodes::get_local: {
                   uint32_t local_idx = parse_varuint32(code);
                   op_stack.push(local_types[local_idx]);
-                  code_writer.emit_get_local(local_idx);
+                  code_writer.emit_get_local(local_idx, local_types[local_idx]);
                } break;
                case opcodes::set_local: {
                   check_in_bounds();
                   uint32_t local_idx = parse_varuint32(code);
                   op_stack.pop(local_types[local_idx]);
-                  code_writer.emit_set_local(local_idx);
+                  code_writer.emit_set_local(local_idx, local_types[local_idx]);
                } break;
                case opcodes::tee_local: {
                   check_in_bounds();
                   uint32_t local_idx = parse_varuint32(code);
                   op_stack.top(local_types[local_idx]);
-                  code_writer.emit_tee_local(local_idx);
+                  code_writer.emit_tee_local(local_idx, local_types[local_idx]);
                } break;
                case opcodes::get_global: {
                   uint32_t global_idx = parse_varuint32(code);

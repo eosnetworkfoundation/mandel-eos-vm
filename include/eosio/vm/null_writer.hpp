@@ -27,9 +27,9 @@ class null_writer {
 
    void emit_drop(uint8_t /*type*/) {}
    void emit_select() {}
-   void emit_get_local(uint32_t /*localidx*/) {}
-   void emit_set_local(uint32_t /*localidx*/) {}
-   void emit_tee_local(uint32_t /*localidx*/) {}
+   void emit_get_local(uint32_t /*localidx*/, uint8_t /*type*/) {}
+   void emit_set_local(uint32_t /*localidx*/, uint8_t /*type*/) {}
+   void emit_tee_local(uint32_t /*localidx*/, uint8_t /*type*/) {}
    void emit_get_global(uint32_t /*localidx*/) {}
    void emit_set_global(uint32_t /*localidx*/) {}
 

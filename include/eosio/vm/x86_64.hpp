@@ -169,10 +169,11 @@ namespace eosio { namespace vm {
       }
 
       static constexpr std::size_t max_prologue_size = 21;
-      static constexpr std::size_t max_epilogue_size = 18;
+      static constexpr std::size_t max_epilogue_size = 10;
       void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& locals, uint32_t funcnum) {
          _ft = &_mod.types[_mod.functions[funcnum]];
          _params = function_parameters{_ft};
+         _locals = function_locals{locals};
          // FIXME: This is not a tight upper bound
          const std::size_t instruction_size_ratio_upper_bound = use_softfloat?(Context::async_backtrace()?63:49):79;
          std::size_t code_size = max_prologue_size + _mod.code[funcnum].size * instruction_size_ratio_upper_bound + max_epilogue_size;
@@ -223,18 +224,16 @@ namespace eosio { namespace vm {
          if(ft.return_count != 0) {
             if(ft.return_type == types::v128) {
                emit_vmovups(*rsp, xmm0);
-               emit_add(16, rsp);
             } else {
                // pop RAX
-               emit_bytes(0x58);
+               emit_pop(rax);
             }
          }
-         if (_local_count & 0xF0000000u) unimplemented();
-         emit_multipop(_local_count);
-         // popq RBP
-         emit_bytes(0x5d);
-         // retq
-         emit_bytes(0xc3);
+         if (_local_count > 0 || (ft.return_count != 0 && ft.return_type == types::v128)) {
+            emit_movq(rbp, rsp);
+         }
+         emit_pop(rbp);
+         emit(RET);
          assert((char*)code <= (char*)epilogue_start + max_epilogue_size);
       }
 
@@ -469,7 +468,7 @@ namespace eosio { namespace vm {
          emit_bytes(0x48, 0x89, 0x0c, 0x24);
       }
 
-      void emit_get_local(uint32_t local_idx) {
+      void emit_get_local(uint32_t local_idx, uint8_t type) {
          auto icount = fixed_size_instr(8);
          // stack layout:
          //   param0    <----- %rbp + 8*(nparams + 1)
@@ -483,65 +482,39 @@ namespace eosio { namespace vm {
          //   local1
          //   ...
          //   localN
-         if (local_idx < _ft->param_types.size()) {
-            auto addr = *(rbp + _params.get_frame_offset(local_idx));
-            if (_ft->param_types[local_idx] != types::v128) {
-               emit_movq(addr, rax);
-               emit_push(rax);
-            } else {
-               emit_vmovups(addr, xmm0);
-               emit_sub(16, rsp);
-               emit_vmovups(xmm0, *rsp);
-            }
+         // v128 occupies two slots
+         auto addr = *(rbp + get_frame_offset(local_idx));
+         if (type != types::v128) {
+            emit_movq(addr, rax);
+            emit_push(rax);
          } else {
-            // mov -8*(local_idx+1)(%RBP), RAX
-            emit_bytes(0x48, 0x8b, 0x85);
-            emit_operand32(-8 * (local_idx - _ft->param_types.size() + 1));
-            // push RAX
-            emit_bytes(0x50);
+            emit_vmovups(addr, xmm0);
+            emit_sub(16, rsp);
+            emit_vmovups(xmm0, *rsp);
          }
       }
 
-      void emit_set_local(uint32_t local_idx) {
-         auto icount = fixed_size_instr(8);
-         if (local_idx < _ft->param_types.size()) {
-            auto addr = *(rbp + _params.get_frame_offset(local_idx));
-            if (_ft->param_types[local_idx] != types::v128) {
-               emit_pop(rax);
-               emit_movq(rax, addr);
-            } else {
-               emit_vmovups(*rsp, xmm0);
-               emit_add(16, rsp);
-               emit_vmovups(xmm0, addr);
-            }
+      void emit_set_local(uint32_t local_idx, uint8_t type) {
+         auto addr = *(rbp + get_frame_offset(local_idx));
+         if (type != types::v128) {
+            emit_pop(rax);
+            emit_movq(rax, addr);
          } else {
-            // pop RAX
-            emit_bytes(0x58);
-            // mov RAX, -8*local_idx(EBP)
-            emit_bytes(0x48, 0x89, 0x85);
-            emit_operand32(-8 * (local_idx - _ft->param_types.size() + 1));
+            emit_vmovups(*rsp, xmm0);
+            emit_add(16, rsp);
+            emit_vmovups(xmm0, addr);
          }
       }
 
-      void emit_tee_local(uint32_t local_idx) {
+      void emit_tee_local(uint32_t local_idx, uint8_t type) {
          auto icount = fixed_size_instr(9); // FIXME
-         if (local_idx < _ft->param_types.size()) {
-            auto addr = *(rbp + _params.get_frame_offset(local_idx));
-            if (_ft->param_types[local_idx] != types::v128) {
-               emit_movq(*rsp, rax);
-               emit_movq(rax, *(rbp + _params.get_frame_offset(local_idx)));
-            } else {
-               emit_vmovups(*rsp, xmm0);
-               emit_vmovups(xmm0, addr);
-            }
+         auto addr = *(rbp + get_frame_offset(local_idx));
+         if (type != types::v128) {
+            emit_movq(*rsp, rax);
+            emit_movq(rax, *(rbp + _params.get_frame_offset(local_idx)));
          } else {
-            // pop RAX
-            emit_bytes(0x58);
-            // push RAX
-            emit_bytes(0x50);
-            // mov RAX, -8*local_idx(EBP)
-            emit_bytes(0x48, 0x89, 0x85);
-            emit_operand32(-8 * (local_idx - _ft->param_types.size() + 1));
+            emit_vmovups(*rsp, xmm0);
+            emit_vmovups(xmm0, addr);
          }
       }
 
@@ -3883,10 +3856,10 @@ namespace eosio { namespace vm {
       }
 
       void emit_VEX_prefix(bool R, bool X, bool B, VEX_mmmm mmmm, bool W, int vvvv, bool L, VEX_pp pp) {
-         if(X || B || mmmm || W) {
+         if(X || B || (mmmm != mmmm_0F) || W) {
             emit_bytes(0xc4, (!R << 7) | (!X << 6) | (!B << 5) | mmmm, (W << 7) | ((vvvv ^ 0xF) << 3) | (L << 2) | pp);
          } else {
-            emit_bytes(0xc5, (!R << 7) | (vvvv << 3) | (L << 2) | pp);
+            emit_bytes(0xc5, (!R << 7) | ((vvvv ^ 0xF) << 3) | (L << 2) | pp);
          }
       }
 
@@ -4096,16 +4069,55 @@ namespace eosio { namespace vm {
                }
             }
          }
-         int32_t get_frame_offset(uint32_t localidx) {
+         int32_t get_frame_offset(uint32_t localidx) const {
             return offsets[localidx];
          }
          std::vector<uint32_t> offsets;
       };
 
+      struct function_locals {
+         function_locals() = default;
+         function_locals(const guarded_vector<local_entry>& params) {
+            uint32_t offset = 0;
+            int32_t frame_offset = 0;
+            for(uint32_t i = 0; i < params.size(); ++i) {
+               uint8_t size = params[i].type == types::v128? 16 : 8;
+               offset += params[i].count;
+               if(-0x80000000ll + static_cast<int64_t>(size) * static_cast<int64_t>(params[i].count) > frame_offset) {
+                  unimplemented();
+               }
+               frame_offset -= size * params[i].count;
+               groups.push_back({offset, frame_offset, size});
+            }
+         }
+         struct entry {
+            uint32_t end;
+            int32_t end_offset;
+            uint8_t elem_size;
+         };
+         int32_t get_frame_offset(uint32_t paramidx) const {
+            auto pos = std::partition_point(groups.begin(), groups.end(), [=](const auto& e){
+               return paramidx >= e.end;
+            });
+            assert(pos != groups.end());
+            return (pos->end_offset + (pos->end - paramidx - 1) * pos->elem_size);
+         }
+         std::vector<entry> groups;
+      };
+
+      int32_t get_frame_offset(uint32_t local_idx) const {
+         if (local_idx < _ft->param_types.size()) {
+            return _params.get_frame_offset(local_idx);
+         } else {
+            return _locals.get_frame_offset(local_idx - _ft->param_types.size());
+         }
+      }
+
       module& _mod;
       void * _code_segment_base;
       const func_type* _ft;
       function_parameters _params;
+      function_locals _locals;
       unsigned char * _code_start;
       unsigned char * _code_end;
       unsigned char * code;
