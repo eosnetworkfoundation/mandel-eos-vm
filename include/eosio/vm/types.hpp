@@ -59,10 +59,11 @@ namespace eosio { namespace vm {
       int64_t  i64;
       uint32_t f32;
       uint64_t f64;
+      v128_t   v128;
    };
 
    struct init_expr {
-      int8_t     opcode;
+      uint8_t    opcode;
       expr_value value;
    };
 

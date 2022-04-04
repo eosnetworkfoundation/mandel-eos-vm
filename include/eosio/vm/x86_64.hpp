@@ -546,7 +546,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_get_global(uint32_t globalidx) {
-         auto icount = variable_size_instr(13, 14);
+         auto icount = variable_size_instr(13, 14); // FIXME
          auto& gl = _mod.globals[globalidx];
          void *ptr = &gl.current.value;
          switch(gl.type.content_type) {
@@ -570,19 +570,36 @@ namespace eosio { namespace vm {
             // push %rax
             emit_bytes(0x50);
             break;
+          case types::v128:
+            // movabsq $ptr, %rax
+            emit_bytes(0x48, 0xb8);
+            emit_operand_ptr(ptr);
+            emit_vmovups(*rax, xmm0);
+            emit_sub(16, rsp);
+            emit_vmovups(xmm0, *rsp);
+            break;
          }
       }
       void emit_set_global(uint32_t globalidx) {
-         auto icount = fixed_size_instr(14);
+         auto icount = fixed_size_instr(14); // FIXME
          auto& gl = _mod.globals[globalidx];
          void *ptr = &gl.current.value;
-         // popq %rcx
-         emit_bytes(0x59);
-         // movabsq $ptr, %rax
-         emit_bytes(0x48, 0xb8);
-         emit_operand_ptr(ptr);
-         // movq %rcx, (%rax)
-         emit_bytes(0x48, 0x89, 0x08);
+         if(gl.type.content_type != types::v128) {
+            // popq %rcx
+            emit_bytes(0x59);
+            // movabsq $ptr, %rax
+            emit_bytes(0x48, 0xb8);
+            emit_operand_ptr(ptr);
+            // movq %rcx, (%rax)
+            emit_bytes(0x48, 0x89, 0x08);
+         } else {
+            emit_vmovups(*rsp, xmm0);
+            emit_add(16, rsp);
+            // movabsq $ptr, %rax
+            emit_bytes(0x48, 0xb8);
+            emit_operand_ptr(ptr);
+            emit_vmovups(xmm0, *rax);
+         }
       }
 
       void emit_i32_load(uint32_t /*alignment*/, uint32_t offset) {

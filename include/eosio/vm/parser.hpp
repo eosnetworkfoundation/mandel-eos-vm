@@ -469,7 +469,7 @@ namespace eosio { namespace vm {
       void parse_global_variable(wasm_code_ptr& code, global_variable& gv) {
          uint8_t ct           = *code++;
          gv.type.content_type = ct;
-         EOS_VM_ASSERT(ct == types::i32 || ct == types::i64 || ct == types::f32 || ct == types::f64,
+         EOS_VM_ASSERT(ct == types::i32 || ct == types::i64 || ct == types::f32 || ct == types::f64 || (ct == types::v128 && detail::get_enable_simd(_options)),
                        wasm_parse_exception, "invalid global content type");
 
          gv.type.mutability = parse_varuint1(code);
@@ -577,9 +577,15 @@ namespace eosio { namespace vm {
                ie.value.f64 = parse_raw<uint64_t>(code);
                EOS_VM_ASSERT(type == types::f64, wasm_parse_exception, "expected f64 initializer");
                break;
+            case opcodes::vector_prefix:
+               EOS_VM_ASSERT(detail::get_enable_simd(_options), wasm_parse_exception, "SIMD not enabled");
+               EOS_VM_ASSERT(parse_varuint32(code) == vec_opcodes::v128_const, wasm_parse_exception, "Expected v128.const");
+               ie.value.v128 = parse_v128(code);
+               EOS_VM_ASSERT(type == types::v128, wasm_parse_exception, "expected v128 initializer");
+               break;
             default:
                EOS_VM_ASSERT(false, wasm_parse_exception,
-                             "initializer expression can only acception i32.const, i64.const, f32.const and f64.const");
+                             "initializer expression can only acception i32.const, i64.const, f32.const, f64.const and v128.const");
          }
          EOS_VM_ASSERT((*code++) == opcodes::end, wasm_parse_exception, "no end op found");
       }
