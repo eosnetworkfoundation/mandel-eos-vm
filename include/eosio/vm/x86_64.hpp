@@ -3515,6 +3515,68 @@ namespace eosio { namespace vm {
          emit_vmovups(xmm0, *rsp);
       }
 
+      // ----------- f32x4 arithmetic -------------------
+
+      void emit_f32x4_ceil() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_ceil);
+      }
+
+      void emit_f32x4_floor() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_floor);
+      }
+
+      void emit_f32x4_trunc() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_trunc);
+      }
+
+      void emit_f32x4_nearest() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_nearest);
+      }
+
+      void emit_f32x4_abs() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_abs);
+      }
+
+      void emit_f32x4_neg() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_neg);
+      }
+
+      void emit_f32x4_sqrt() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_sqrt);
+      }
+
+      void emit_f32x4_add() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_add);
+      }
+
+      void emit_f32x4_sub() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_sub);
+      }
+
+      void emit_f32x4_mul() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_mul);
+      }
+
+      void emit_f32x4_div() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_div);
+      }
+
+      void emit_f32x4_min() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_min);
+      }
+
+      void emit_f32x4_max() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_max);
+      }
+
+      void emit_f32x4_pmin() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_pmin);
+      }
+
+      void emit_f32x4_pmax() {
+         emit_v128_binop_softfloat(&_eosio_f32x4_pmax);
+      }
+
       void emit_error() { unimplemented(); }
 
       // --------------- random  ------------------------
@@ -4693,6 +4755,26 @@ namespace eosio { namespace vm {
          // jnz FP_ERROR_HANDLER
          emit_bytes(0x0f, 0x85);
          fix_branch(emit_branch_target32(), fpe_handler);
+      }
+
+      void emit_v128_unop_softfloat(v128_t (*softfloatfun)(v128_t)) {
+         int32_t extra = emit_setup_backtrace();
+         emit_push(rdi);
+         emit_push(rsi);
+         emit_movq(*(rsp + (16 + extra)), rdi);
+         emit_movq(*(rsp + (24 + extra)), rsi);
+         emit_align_stack(rax);
+         // movabsq $softfloatfun, %rax
+         emit_bytes(0x48, 0xb8);
+         emit_operand_ptr(softfloatfun);
+         // callq *%rax
+         emit_bytes(0xff, 0xd0);
+         emit_restore_stack();
+         emit_pop(rsi);
+         emit_pop(rdi);
+         emit_restore_backtrace(); // FIXME: clobbers rdx
+         emit_movq(rax, *rsp);
+         emit_movq(rdx, *(rsp + 8));
       }
 
       void emit_v128_binop_softfloat(v128_t (*softfloatfun)(v128_t, v128_t)) {

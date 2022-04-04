@@ -36,11 +36,27 @@ inline float _eosio_f32_mul( float a, float b ) {
 inline float _eosio_f32_min( float af, float bf ) {
    float32_t a = to_softfloat32(af);
    float32_t b = to_softfloat32(bf);
+   // non-conforming: must return arithmetic NaN
    if (is_nan(a)) {
       return af;
    }
    if (is_nan(b)) {
       return bf;
+   }
+   if ( f32_sign_bit(a) != f32_sign_bit(b) ) {
+      return f32_sign_bit(a) ? af : bf;
+   }
+   return ::f32_lt(a,b) ? af : bf;
+}
+
+inline float _eosio_f32_min_fixed( float af, float bf ) {
+   float32_t a = to_softfloat32(af);
+   float32_t b = to_softfloat32(bf);
+   if (is_nan(a)) {
+      return from_softfloat32({ a.v | 0x00400000 });
+   }
+   if (is_nan(b)) {
+      return from_softfloat32({ b.v | 0x00400000 });
    }
    if ( f32_sign_bit(a) != f32_sign_bit(b) ) {
       return f32_sign_bit(a) ? af : bf;
@@ -56,6 +72,21 @@ inline float _eosio_f32_max( float af, float bf ) {
    }
    if (is_nan(b)) {
       return bf;
+   }
+   if ( f32_sign_bit(a) != f32_sign_bit(b) ) {
+      return f32_sign_bit(a) ? bf : af;
+   }
+   return ::f32_lt( a, b ) ? bf : af;
+}
+
+inline float _eosio_f32_max_fixed( float af, float bf ) {
+   float32_t a = to_softfloat32(af);
+   float32_t b = to_softfloat32(bf);
+   if (is_nan(a)) {
+      return from_softfloat32({ a.v | 0x00400000 });
+   }
+   if (is_nan(b)) {
+      return from_softfloat32({ b.v | 0x00400000 });
    }
    if ( f32_sign_bit(a) != f32_sign_bit(b) ) {
       return f32_sign_bit(a) ? bf : af;
@@ -113,10 +144,61 @@ inline float _eosio_f32_ceil( float af ) {
    return from_softfloat32(a);
 }
 
+inline float _eosio_f32_ceil_fixed( float af ) {
+   float32_t a = to_softfloat32(af);
+   int e = (int)(a.v >> 23 & 0xFF) - 0X7F;
+   uint32_t m;
+   if (is_nan(a)) {
+      return from_softfloat32({ a.v | 0x00400000 });
+   }
+   if (e >= 23)
+      return af;
+   if (e >= 0) {
+      m = 0x007FFFFF >> e;
+      if ((a.v & m) == 0)
+         return af;
+      if (a.v >> 31 == 0)
+         a.v += m;
+      a.v &= ~m;
+   } else {
+      if (a.v >> 31)
+         a.v = 0x80000000; // return -0.0f
+      else if (a.v << 1)
+         a.v = 0x3F800000; // return 1.0f
+   }
+
+   return from_softfloat32(a);
+}
+
 inline float _eosio_f32_floor( float af ) {
    float32_t a = to_softfloat32(af);
    int e = (int)(a.v >> 23 & 0xFF) - 0X7F;
    uint32_t m;
+   if (e >= 23)
+      return af;
+   if (e >= 0) {
+      m = 0x007FFFFF >> e;
+      if ((a.v & m) == 0)
+         return af;
+      if (a.v >> 31)
+         a.v += m;
+      a.v &= ~m;
+   } else {
+      if (a.v >> 31 == 0)
+         a.v = 0;
+      else if (a.v << 1)
+         a.v = 0xBF800000; // return -1.0f
+   }
+   return from_softfloat32(a);
+}
+
+inline float _eosio_f32_floor_fixed( float af ) {
+   float32_t a = to_softfloat32(af);
+   int e = (int)(a.v >> 23 & 0xFF) - 0X7F;
+   uint32_t m;
+   if (is_nan(a)) {
+      return from_softfloat32({ a.v | 0x00400000 });
+   }
    if (e >= 23)
       return af;
    if (e >= 0) {
@@ -150,11 +232,48 @@ inline float _eosio_f32_trunc( float af ) {
    return from_softfloat32(a);
 }
 
+inline float _eosio_f32_trunc_fixed( float af ) {
+   float32_t a = to_softfloat32(af);
+   int e = (int)(a.v >> 23 & 0xff) - 0x7f + 9;
+   uint32_t m;
+   if (is_nan(a)) {
+      return from_softfloat32({ a.v | 0x00400000 });
+   }
+   if (e >= 23 + 9)
+      return af;
+   if (e < 9)
+      e = 1;
+   m = -1U >> e;
+   if ((a.v & m) == 0)
+      return af;
+   a.v &= ~m;
+   return from_softfloat32(a);
+}
+
 inline float _eosio_f32_nearest( float af ) {
    float32_t a = to_softfloat32(af);
    int e = a.v>>23 & 0xff;
    int s = a.v>>31;
    float32_t y;
+   if (e >= 0x7f+23)
+      return af;
+   if (s)
+      y = ::f32_add( ::f32_sub( a, float32_t{inv_float_eps} ), float32_t{inv_float_eps} );
+   else
+      y = ::f32_sub( ::f32_add( a, float32_t{inv_float_eps} ), float32_t{inv_float_eps} );
+   if (::f32_eq( y, {0} ) )
+      return s ? -0.0f : 0.0f;
+   return from_softfloat32(y);
+}
+
+inline float _eosio_f32_nearest_fixed( float af ) {
+   float32_t a = to_softfloat32(af);
+   int e = a.v>>23 & 0xff;
+   int s = a.v>>31;
+   float32_t y;
+   if (is_nan(a)) {
+      return from_softfloat32({ a.v | 0x00400000 });
+   }
    if (e >= 0x7f+23)
       return af;
    if (s)
@@ -464,11 +583,33 @@ inline double _eosio_ui64_to_f64( uint64_t a ) {
    return from_softfloat64(ui64_to_f64( a ));
 }
 
+template<typename F, typename R, typename... T>
+auto get_funptr(F f, R (F::*)(T...) const) {
+   return static_cast<R(*)(T...)>(f);
+}
 template<typename F>
-inline v128_t apply_f32x4(v128_t a, v128_t b, F f) {
-   float32_t a_[4];
-   float32_t b_[4];
-   int32_t result_[4];
+auto get_funptr(F f) { return get_funptr(f, &F::operator()); }
+
+template<typename R, typename T>
+inline v128_t apply_f32x4(v128_t a, R(*f)(T)) {
+   T a_[4];
+   R result_[4];
+   static_assert(sizeof(a_) == sizeof(a));
+   std::memcpy(&a_, &a, sizeof(a));
+   for(int i = 0; i < 4; ++i) {
+      result_[i] = f(a_[i]);
+   }
+   v128_t result;
+   static_assert(sizeof(result_) == sizeof(result));
+   memcpy(&result, &result_, sizeof(result));
+   return result;
+}
+
+template<typename R, typename T>
+inline v128_t apply_f32x4(v128_t a, v128_t b, R (*f)(T,T)) {
+   T a_[4];
+   T b_[4];
+   R result_[4];
    static_assert(sizeof(a_) == sizeof(a));
    std::memcpy(&a_, &a, sizeof(a));
    std::memcpy(&b_, &b, sizeof(b));
@@ -476,8 +617,19 @@ inline v128_t apply_f32x4(v128_t a, v128_t b, F f) {
       result_[i] = f(a_[i], b_[i]);
    }
    v128_t result;
+   static_assert(sizeof(result_) == sizeof(result));
    memcpy(&result, &result_, sizeof(result));
    return result;
+}
+
+template<typename F>
+inline v128_t apply_f32x4(v128_t a, F f) {
+   return apply_f32x4(a, get_funptr(f));
+}
+
+template<typename F>
+inline v128_t apply_f32x4(v128_t a, v128_t b, F f) {
+   return apply_f32x4(a, b, get_funptr(f));
 }
 
 inline v128_t _eosio_f32x4_eq(v128_t a, v128_t b) {
@@ -514,6 +666,66 @@ inline v128_t _eosio_f32x4_ge(v128_t a, v128_t b) {
    return apply_f32x4(a, b, [](float32_t a, float32_t b) -> std::int32_t {
       return ::f32_le(b,a)?-1:0;
    });
+}
+
+inline v128_t _eosio_f32x4_ceil(v128_t a) {
+   return apply_f32x4(a, _eosio_f32_ceil_fixed);
+}
+
+inline v128_t _eosio_f32x4_floor(v128_t a) {
+   return apply_f32x4(a, _eosio_f32_floor_fixed);
+}
+
+inline v128_t _eosio_f32x4_trunc(v128_t a) {
+   return apply_f32x4(a, _eosio_f32_trunc_fixed);
+}
+
+inline v128_t _eosio_f32x4_nearest(v128_t a) {
+   return apply_f32x4(a, _eosio_f32_nearest_fixed);
+}
+
+inline v128_t _eosio_f32x4_abs(v128_t a) {
+   return apply_f32x4(a, _eosio_f32_abs);
+}
+
+inline v128_t _eosio_f32x4_neg(v128_t a) {
+   return apply_f32x4(a, _eosio_f32_neg);
+}
+
+inline v128_t _eosio_f32x4_sqrt(v128_t a) {
+   return apply_f32x4(a, _eosio_f32_sqrt);
+}
+
+inline v128_t _eosio_f32x4_add(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, ::f32_add);
+}
+
+inline v128_t _eosio_f32x4_sub(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, ::f32_sub);
+}
+
+inline v128_t _eosio_f32x4_mul(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, ::f32_mul);
+}
+
+inline v128_t _eosio_f32x4_div(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, ::f32_div);
+}
+
+inline v128_t _eosio_f32x4_min(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, _eosio_f32_min_fixed);
+}
+
+inline v128_t _eosio_f32x4_max(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, _eosio_f32_max_fixed);
+}
+
+inline v128_t _eosio_f32x4_pmin(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) { return ::f32_lt(b, a)?b:a; });
+}
+
+inline v128_t _eosio_f32x4_pmax(v128_t a, v128_t b) {
+   return apply_f32x4(a, b, [](float32_t a, float32_t b) { return ::f32_lt(a, b)?b:a; });
 }
 
 }} //ns eosio::vm

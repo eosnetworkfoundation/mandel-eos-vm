@@ -93,6 +93,58 @@ eosio::vm::v128_t make_v128_f64(T... x) {
    return result;
 }
 
+struct nan_arithmetic_t {};
+
+inline std::ostream& operator<<(std::ostream& os, nan_arithmetic_t) {
+   return os << "nan:arithmetic";
+}
+
+inline bool operator==(uint32_t arg, nan_arithmetic_t) {
+   return (arg & 0x7fc00000u) == 0x7fc00000u;
+}
+
+struct nan_canonical_t {};
+
+inline std::ostream& operator<<(std::ostream& os, nan_canonical_t) {
+   return os << "nan:canonical";
+}
+
+inline bool operator==(uint32_t arg, nan_canonical_t) {
+   return (arg & 0x7fffffffu) == 0x7fc00000u;
+}
+
+template<typename... T>
+struct v128_matcher {
+   v128_matcher(T... t) : lanes(t...) {}
+   std::tuple<T...> lanes;
+};
+
+template<typename... T>
+std::ostream& operator<<(std::ostream& os, v128_matcher<T...> m) {
+   os << "[";
+   os << std::get<0>(m.lanes);
+   os << "," << std::get<1>(m.lanes);
+   os << "," << std::get<2>(m.lanes);
+   os << "," << std::get<3>(m.lanes);
+   os << "]";
+   return os;
+}
+
+template<int N>
+auto split_v128(eosio::vm::v128_t);
+
+template<>
+inline auto split_v128<4>(eosio::vm::v128_t arg) {
+   std::uint32_t result[4];
+   memcpy(&result, &arg, sizeof(arg));
+   return std::tuple(result[0], result[1], result[2], result[3]);
+}
+
+template<typename... T>
+bool operator==(eosio::vm::v128_t vec, v128_matcher<T...> pattern) {
+   return split_v128<sizeof...(T)>(vec) == pattern.lanes;
+}
+
 inline bool check_nan(const std::optional<eosio::vm::operand_stack_elem>& v) {
    return visit(eosio::vm::overloaded{[](eosio::vm::i32_const_t){ return false; },
                                       [](eosio::vm::i64_const_t){ return false; },

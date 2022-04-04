@@ -1290,14 +1290,27 @@ void generate_tests(const map<string, vector<picojson::object>>& mappings) {
    auto grab_expected = [&](auto obj) {
       exp_t = obj["type"].to_str();
       if(exp_t == "v128") {
-         exp_v = "make_v128_" + obj["lane_type"].to_str() + "(";
+         exp_v = "";
+         bool has_nan = false;
          bool first = true;
          for(auto elem : obj["value"].template get<picojson::array>()) {
             if(!first) exp_v += ",";
             else first = false;
-            exp_v += elem.to_str();
+            if(elem.to_str() == "nan:arithmetic") {
+               exp_v += "nan_arithmetic_t{}";
+               has_nan = true;
+            } else if(elem.to_str() == "nan:canonical") {
+               exp_v += "nan_canonical_t{}";
+               has_nan = true;
+            } else {
+               exp_v += elem.to_str();
+            }
          }
-         exp_v += ")";
+         if(has_nan) {
+            exp_v = "v128_matcher{" + std::move(exp_v) + "}";
+         } else {
+            exp_v = "make_v128_" + obj["lane_type"].to_str() + "(" + std::move(exp_v) + ")";
+         }
       } else {
          exp_v = obj["value"].to_str();
       }
