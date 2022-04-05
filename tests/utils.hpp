@@ -103,6 +103,10 @@ inline bool operator==(uint32_t arg, nan_arithmetic_t) {
    return (arg & 0x7fc00000u) == 0x7fc00000u;
 }
 
+inline bool operator==(uint64_t arg, nan_arithmetic_t) {
+   return (arg & 0x7ff8000000000000u) == 0x7ff8000000000000u;
+}
+
 struct nan_canonical_t {};
 
 inline std::ostream& operator<<(std::ostream& os, nan_canonical_t) {
@@ -111,6 +115,10 @@ inline std::ostream& operator<<(std::ostream& os, nan_canonical_t) {
 
 inline bool operator==(uint32_t arg, nan_canonical_t) {
    return (arg & 0x7fffffffu) == 0x7fc00000u;
+}
+
+inline bool operator==(uint64_t arg, nan_canonical_t) {
+   return (arg & 0x7fffffffffffffffu) == 0x7ff8000000000000u;
 }
 
 template<typename... T>
@@ -124,14 +132,23 @@ std::ostream& operator<<(std::ostream& os, v128_matcher<T...> m) {
    os << "[";
    os << std::get<0>(m.lanes);
    os << "," << std::get<1>(m.lanes);
-   os << "," << std::get<2>(m.lanes);
-   os << "," << std::get<3>(m.lanes);
+   if constexpr (sizeof... (T) > 2) {
+      os << "," << std::get<2>(m.lanes);
+      os << "," << std::get<3>(m.lanes);
+   }
    os << "]";
    return os;
 }
 
 template<int N>
 auto split_v128(eosio::vm::v128_t);
+
+template<>
+inline auto split_v128<2>(eosio::vm::v128_t arg) {
+   std::uint64_t result[2];
+   memcpy(&result, &arg, sizeof(arg));
+   return std::tuple(result[0], result[1]);
+}
 
 template<>
 inline auto split_v128<4>(eosio::vm::v128_t arg) {

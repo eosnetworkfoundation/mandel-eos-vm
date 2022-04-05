@@ -54,11 +54,8 @@ endmacro()
 foreach(testcase
     #simd_address simd_align simd_bit_shift simd_bitwise simd_boolean simd_const
     #simd_conversions
-    
-    simd_f32x4 simd_f32x4_arith
-    simd_f32x4_cmp
-    simd_f32x4_pmin_pmax simd_f32x4_rounding
-    
+    #simd_f32x4 simd_f32x4_arith simd_f32x4_cmp simd_f32x4_pmin_pmax simd_f32x4_rounding
+    simd_f64x2 simd_f64x2_arith simd_f64x2_cmp simd_f64x2_pmin_pmax simd_f64x2_rounding
     #simd_i8x16_arith simd_i8x16_arith2 simd_i8x16_cmp simd_i8x16_sat_arith
     #simd_i16x8_arith simd_i16x8_arith2 simd_i16x8_cmp simd_i16x8_extadd_pairwise_i8x16
     #simd_i16x8_extmul_i8x16 simd_i16x8_q15mulr_sat_s simd_i16x8_sat_arith

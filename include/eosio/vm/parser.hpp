@@ -1443,12 +1443,12 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(f32x4_le, (v128, v128), (v128))
                      NUMERIC_OP(f32x4_ge, (v128, v128), (v128))
 
-                     // NUMERIC_OP(f64x2_eq, (v128, v128), (v128))
-                     // NUMERIC_OP(f64x2_ne, (v128, v128), (v128))
-                     // NUMERIC_OP(f64x2_lt, (v128, v128), (v128))
-                     // NUMERIC_OP(f64x2_gt, (v128, v128), (v128))
-                     // NUMERIC_OP(f64x2_le, (v128, v128), (v128))
-                     // NUMERIC_OP(f64x2_ge, (v128, v128), (v128))
+                     NUMERIC_OP(f64x2_eq, (v128, v128), (v128))
+                     NUMERIC_OP(f64x2_ne, (v128, v128), (v128))
+                     NUMERIC_OP(f64x2_lt, (v128, v128), (v128))
+                     NUMERIC_OP(f64x2_gt, (v128, v128), (v128))
+                     NUMERIC_OP(f64x2_le, (v128, v128), (v128))
+                     NUMERIC_OP(f64x2_ge, (v128, v128), (v128))
 
                      NUMERIC_OP(v128_not, (v128), (v128));
                      NUMERIC_OP(v128_and, (v128, v128), (v128));
@@ -1573,6 +1573,22 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(f32x4_max, (v128, v128), (v128));
                      NUMERIC_OP(f32x4_pmin, (v128, v128), (v128));
                      NUMERIC_OP(f32x4_pmax, (v128, v128), (v128));
+
+                     NUMERIC_OP(f64x2_ceil, (v128), (v128));
+                     NUMERIC_OP(f64x2_floor, (v128), (v128));
+                     NUMERIC_OP(f64x2_trunc, (v128), (v128));
+                     NUMERIC_OP(f64x2_nearest, (v128), (v128));
+                     NUMERIC_OP(f64x2_abs, (v128), (v128));
+                     NUMERIC_OP(f64x2_neg, (v128), (v128));
+                     NUMERIC_OP(f64x2_sqrt, (v128), (v128));
+                     NUMERIC_OP(f64x2_add, (v128, v128), (v128));
+                     NUMERIC_OP(f64x2_sub, (v128, v128), (v128));
+                     NUMERIC_OP(f64x2_mul, (v128, v128), (v128));
+                     NUMERIC_OP(f64x2_div, (v128, v128), (v128));
+                     NUMERIC_OP(f64x2_min, (v128, v128), (v128));
+                     NUMERIC_OP(f64x2_max, (v128, v128), (v128));
+                     NUMERIC_OP(f64x2_pmin, (v128, v128), (v128));
+                     NUMERIC_OP(f64x2_pmax, (v128, v128), (v128));
 
 #undef NUMERIC_OP
 #undef VA_SZ

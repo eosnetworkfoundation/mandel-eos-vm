@@ -20,7 +20,16 @@ inline bool is_nan( const float64_t f ) {
 template<bool ForceArithmetic>
 float32_t propagate_nan(float32_t a) {
    if constexpr(ForceArithmetic) {
-      return { a.v | 0x00400000 };
+      return { a.v | 0x00400000u };
+   } else {
+      return a;
+   }
+}
+
+template<bool ForceArithmetic>
+float64_t propagate_nan(float64_t a) {
+   if constexpr(ForceArithmetic) {
+      return { a.v | 0x0008000000000000u };
    } else {
       return a;
    }
@@ -237,25 +246,31 @@ inline double _eosio_f64_mul( double a, double b ) {
    return from_softfloat64(ret);
 }
 
+template<bool ArithNan>
 inline double _eosio_f64_min( double af, double bf ) {
    float64_t a = to_softfloat64(af);
    float64_t b = to_softfloat64(bf);
-   if (is_nan(a))
-      return af;
-   if (is_nan(b))
-      return bf;
+   if (is_nan(a)) {
+      return from_softfloat64(propagate_nan<ArithNan>(a));
+   }
+   if (is_nan(b)) {
+      return from_softfloat64(propagate_nan<ArithNan>(b));
+   }
    if (f64_sign_bit(a) != f64_sign_bit(b))
       return f64_sign_bit(a) ? af : bf;
    return ::f64_lt( a, b ) ? af : bf;
 }
 
+template<bool ArithNan>
 inline double _eosio_f64_max( double af, double bf ) {
    float64_t a = to_softfloat64(af);
    float64_t b = to_softfloat64(bf);
-   if (is_nan(a))
-      return af;
-   if (is_nan(b))
-      return bf;
+   if (is_nan(a)) {
+      return from_softfloat64(propagate_nan<ArithNan>(a));
+   }
+   if (is_nan(b)) {
+      return from_softfloat64(propagate_nan<ArithNan>(b));
+   }
    if (f64_sign_bit(a) != f64_sign_bit(b))
       return f64_sign_bit(a) ? bf : af;
    return ::f64_lt( a, b ) ? bf : af;
@@ -288,11 +303,15 @@ inline double _eosio_f64_sqrt( double a ) {
    return from_softfloat64(ret);
 }
 
+template<bool ArithNan>
 inline double _eosio_f64_ceil( double af ) {
    float64_t a = to_softfloat64( af );
    float64_t ret;
    int e = a.v >> 52 & 0x7ff;
    float64_t y;
+   if (ArithNan && is_nan(a)) {
+      return from_softfloat64(propagate_nan<ArithNan>(a));
+   }
    if (e >= 0x3ff+52 || ::f64_eq( a, { 0 } ))
       return af;
    /* y = int(x) - x, where int(x) is an integer neighbor of x */
@@ -312,11 +331,15 @@ inline double _eosio_f64_ceil( double af ) {
    return from_softfloat64(ret);
 }
 
+template<bool ArithNan>
 inline double _eosio_f64_floor( double af ) {
    float64_t a = to_softfloat64( af );
    float64_t ret;
    int e = a.v >> 52 & 0x7FF;
    float64_t y;
+   if (ArithNan && is_nan(a)) {
+      return from_softfloat64(propagate_nan<ArithNan>(a));
+   }
    if ( a.v == 0x8000000000000000) {
       return af;
    }
@@ -338,10 +361,14 @@ inline double _eosio_f64_floor( double af ) {
    return from_softfloat64(ret);
 }
 
+template<bool ArithNan>
 inline double _eosio_f64_trunc( double af ) {
    float64_t a = to_softfloat64( af );
    int e = (int)(a.v >> 52 & 0x7ff) - 0x3ff + 12;
    uint64_t m;
+   if (ArithNan && is_nan(a)) {
+      return from_softfloat64(propagate_nan<ArithNan>(a));
+   }
    if (e >= 52 + 12)
       return af;
    if (e < 12)
@@ -353,11 +380,15 @@ inline double _eosio_f64_trunc( double af ) {
    return from_softfloat64(a);
 }
 
+template<bool ArithNan>
 inline double _eosio_f64_nearest( double af ) {
    float64_t a = to_softfloat64( af );
    int e = (a.v >> 52 & 0x7FF);
    int s = a.v >> 63;
    float64_t y;
+   if (ArithNan && is_nan(a)) {
+      return from_softfloat64(propagate_nan<ArithNan>(a));
+   }
    if ( e >= 0x3FF+52 )
       return af;
    if ( s )
@@ -413,7 +444,7 @@ inline int32_t _eosio_f64_trunc_i32s( double af ) {
    float64_t a = to_softfloat64(af);
    EOS_VM_ASSERT(!(_eosio_f64_ge(af, 2147483648.0) || _eosio_f64_lt(af, -2147483648.0)), wasm_interpreter_exception, "Error, f64.convert_s/i32 overflow");
    EOS_VM_ASSERT(!is_nan(a), wasm_interpreter_exception, "Error, f64.convert_s/i32 unrepresentable");
-   return f64_to_i32( to_softfloat64(_eosio_f64_trunc( af )), 0, false );
+   return f64_to_i32( to_softfloat64(_eosio_f64_trunc<false>( af )), 0, false );
 }
 
 inline uint32_t _eosio_f32_trunc_i32u( float af ) {
@@ -427,7 +458,7 @@ inline uint32_t _eosio_f64_trunc_i32u( double af ) {
    float64_t a = to_softfloat64(af);
    EOS_VM_ASSERT(!(_eosio_f64_ge(af, 4294967296.0) || _eosio_f64_le(af, -1.0)), wasm_interpreter_exception, "Error, f64.convert_u/i32 overflow");
    EOS_VM_ASSERT(!is_nan(a), wasm_interpreter_exception, "Error, f64.convert_u/i32 unrepresentable");
-   return f64_to_ui32( to_softfloat64(_eosio_f64_trunc( af )), 0, false );
+   return f64_to_ui32( to_softfloat64(_eosio_f64_trunc<false>( af )), 0, false );
 }
 
 inline int64_t _eosio_f32_trunc_i64s( float af ) {
@@ -442,7 +473,7 @@ inline int64_t _eosio_f64_trunc_i64s( double af ) {
    EOS_VM_ASSERT(!(_eosio_f64_ge(af, 9223372036854775808.0) || _eosio_f64_lt(af, -9223372036854775808.0)), wasm_interpreter_exception, "Error, f64.convert_s/i64 overflow");
    EOS_VM_ASSERT(!is_nan(a), wasm_interpreter_exception, "Error, f64.convert_s/i64 unrepresentable");
 
-   return f64_to_i64( to_softfloat64(_eosio_f64_trunc( af )), 0, false );
+   return f64_to_i64( to_softfloat64(_eosio_f64_trunc<false>( af )), 0, false );
 }
 
 inline uint64_t _eosio_f32_trunc_i64u( float af ) {
@@ -456,7 +487,7 @@ inline uint64_t _eosio_f64_trunc_i64u( double af ) {
    float64_t a = to_softfloat64(af);
    EOS_VM_ASSERT(!(_eosio_f64_ge(af, 18446744073709551616.0) || _eosio_f64_le(af, -1.0)), wasm_interpreter_exception, "Error, f64.convert_u/i64 overflow");
    EOS_VM_ASSERT(!is_nan(a), wasm_interpreter_exception, "Error, f64.convert_u/i64 unrepresentable");
-   return f64_to_ui64( to_softfloat64(_eosio_f64_trunc( af )), 0, false );
+   return f64_to_ui64( to_softfloat64(_eosio_f64_trunc<false>( af )), 0, false );
 }
 
 inline float _eosio_i32_to_f32( int32_t a ) {
@@ -634,6 +665,144 @@ inline v128_t _eosio_f32x4_pmin(v128_t a, v128_t b) {
 
 inline v128_t _eosio_f32x4_pmax(v128_t a, v128_t b) {
    return apply_f32x4(a, b, [](float32_t a, float32_t b) { return ::f32_lt(a, b)?b:a; });
+}
+
+template<typename R, typename T>
+inline v128_t apply_f64x2(v128_t a, R(*f)(T)) {
+   T a_[2];
+   R result_[2];
+   static_assert(sizeof(a_) == sizeof(a));
+   std::memcpy(&a_, &a, sizeof(a));
+   for(int i = 0; i < 2; ++i) {
+      result_[i] = f(a_[i]);
+   }
+   v128_t result;
+   static_assert(sizeof(result_) == sizeof(result));
+   memcpy(&result, &result_, sizeof(result));
+   return result;
+}
+
+template<typename R, typename T>
+inline v128_t apply_f64x2(v128_t a, v128_t b, R (*f)(T,T)) {
+   T a_[2];
+   T b_[2];
+   R result_[2];
+   static_assert(sizeof(a_) == sizeof(a));
+   std::memcpy(&a_, &a, sizeof(a));
+   std::memcpy(&b_, &b, sizeof(b));
+   for(int i = 0; i < 2; ++i) {
+      result_[i] = f(a_[i], b_[i]);
+   }
+   v128_t result;
+   static_assert(sizeof(result_) == sizeof(result));
+   memcpy(&result, &result_, sizeof(result));
+   return result;
+}
+
+template<typename F>
+inline v128_t apply_f64x2(v128_t a, F f) {
+   return apply_f64x2(a, get_funptr(f));
+}
+
+template<typename F>
+inline v128_t apply_f64x2(v128_t a, v128_t b, F f) {
+   return apply_f64x2(a, b, get_funptr(f));
+}
+
+inline v128_t _eosio_f64x2_eq(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) -> std::int64_t {
+      return ::f64_eq(a, b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f64x2_ne(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) -> std::int64_t {
+      return !::f64_eq(a,b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f64x2_lt(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) -> std::int64_t {
+      return ::f64_lt(a,b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f64x2_gt(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) -> std::int64_t {
+      return ::f64_lt(b,a)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f64x2_le(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) -> std::int64_t {
+      return ::f64_le(a,b)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f64x2_ge(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) -> std::int64_t {
+      return ::f64_le(b,a)?-1:0;
+   });
+}
+
+inline v128_t _eosio_f64x2_ceil(v128_t a) {
+   return apply_f64x2(a, _eosio_f64_ceil<true>);
+}
+
+inline v128_t _eosio_f64x2_floor(v128_t a) {
+   return apply_f64x2(a, _eosio_f64_floor<true>);
+}
+
+inline v128_t _eosio_f64x2_trunc(v128_t a) {
+   return apply_f64x2(a, _eosio_f64_trunc<true>);
+}
+
+inline v128_t _eosio_f64x2_nearest(v128_t a) {
+   return apply_f64x2(a, _eosio_f64_nearest<true>);
+}
+
+inline v128_t _eosio_f64x2_abs(v128_t a) {
+   return apply_f64x2(a, _eosio_f64_abs);
+}
+
+inline v128_t _eosio_f64x2_neg(v128_t a) {
+   return apply_f64x2(a, _eosio_f64_neg);
+}
+
+inline v128_t _eosio_f64x2_sqrt(v128_t a) {
+   return apply_f64x2(a, _eosio_f64_sqrt);
+}
+
+inline v128_t _eosio_f64x2_add(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, ::f64_add);
+}
+
+inline v128_t _eosio_f64x2_sub(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, ::f64_sub);
+}
+
+inline v128_t _eosio_f64x2_mul(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, ::f64_mul);
+}
+
+inline v128_t _eosio_f64x2_div(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, ::f64_div);
+}
+
+inline v128_t _eosio_f64x2_min(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, _eosio_f64_min<true>);
+}
+
+inline v128_t _eosio_f64x2_max(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, _eosio_f64_max<true>);
+}
+
+inline v128_t _eosio_f64x2_pmin(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) { return ::f64_lt(b, a)?b:a; });
+}
+
+inline v128_t _eosio_f64x2_pmax(v128_t a, v128_t b) {
+   return apply_f64x2(a, b, [](float64_t a, float64_t b) { return ::f64_lt(a, b)?b:a; });
 }
 
 }} //ns eosio::vm

@@ -911,7 +911,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f64();
          if constexpr (use_softfloat)
-            oper = _eosio_f64_ceil(oper);
+            oper = _eosio_f64_ceil<false>(oper);
          else
             oper = __builtin_ceil(oper);
       }
@@ -919,7 +919,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f64();
          if constexpr (use_softfloat)
-            oper = _eosio_f64_floor(oper);
+            oper = _eosio_f64_floor<false>(oper);
          else
             oper = __builtin_floor(oper);
       }
@@ -927,7 +927,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f64();
          if constexpr (use_softfloat)
-            oper = _eosio_f64_trunc(oper);
+            oper = _eosio_f64_trunc<false>(oper);
          else
             oper = __builtin_trunc(oper);
       }
@@ -935,7 +935,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f64();
          if constexpr (use_softfloat)
-            oper = _eosio_f64_nearest(oper);
+            oper = _eosio_f64_nearest<false>(oper);
          else
             oper = __builtin_nearbyint(oper);
       }
@@ -988,7 +988,7 @@ namespace eosio { namespace vm {
          const auto& rhs = context.pop_operand();
          auto&       lhs = context.peek_operand().to_f64();
          if constexpr (use_softfloat)
-            lhs = _eosio_f64_min(lhs, rhs.to_f64());
+            lhs = _eosio_f64_min<false>(lhs, rhs.to_f64());
          else
             lhs = __builtin_fmin(lhs, rhs.to_f64());
       }
@@ -997,7 +997,7 @@ namespace eosio { namespace vm {
          const auto& rhs = context.pop_operand();
          auto&       lhs = context.peek_operand().to_f64();
          if constexpr (use_softfloat)
-            lhs = _eosio_f64_max(lhs, rhs.to_f64());
+            lhs = _eosio_f64_max<false>(lhs, rhs.to_f64());
          else
             lhs = __builtin_fmax(lhs, rhs.to_f64());
       }

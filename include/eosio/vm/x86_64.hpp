@@ -1651,7 +1651,7 @@ namespace eosio { namespace vm {
       void emit_f64_ceil() {
          auto icount = softfloat_instr(12, 38, 56);
          if constexpr (use_softfloat) {
-            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_ceil));
+            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_ceil<false>));
          }
          // roundsd 0b1010, (%rsp), %xmm0
          emit_bytes(0x66, 0x0f, 0x3a, 0x0b, 0x04, 0x24, 0x0a);
@@ -1662,7 +1662,7 @@ namespace eosio { namespace vm {
       void emit_f64_floor() {
          auto icount = softfloat_instr(12, 38, 56);
          if constexpr (use_softfloat) {
-            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_floor));
+            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_floor<false>));
          }
          // roundsd 0b1001, (%rsp), %xmm0
          emit_bytes(0x66, 0x0f, 0x3a, 0x0b, 0x04, 0x24, 0x09);
@@ -1673,7 +1673,7 @@ namespace eosio { namespace vm {
       void emit_f64_trunc() {
          auto icount = softfloat_instr(12, 38, 56);
          if constexpr (use_softfloat) {
-            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_trunc));
+            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_trunc<false>));
          }
          // roundsd 0b1011, (%rsp), %xmm0
          emit_bytes(0x66, 0x0f, 0x3a, 0x0b, 0x04, 0x24, 0x0b);
@@ -1684,7 +1684,7 @@ namespace eosio { namespace vm {
       void emit_f64_nearest() {
          auto icount = softfloat_instr(12, 38, 56);
          if constexpr (use_softfloat) {
-            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_nearest));
+            return emit_softfloat_unop(CHOOSE_FN(_eosio_f64_nearest<false>));
          }
          // roundsd 0b1000, (%rsp), %xmm0
          emit_bytes(0x66, 0x0f, 0x3a, 0x0b, 0x04, 0x24, 0x08);
@@ -1724,7 +1724,7 @@ namespace eosio { namespace vm {
       void emit_f64_min() {
          auto icount = softfloat_instr(49, 47, 61);
          if(use_softfloat) {
-            emit_f64_binop_softfloat(CHOOSE_FN(_eosio_f64_min));
+            emit_f64_binop_softfloat(CHOOSE_FN(_eosio_f64_min<false>));
             return;
          }
          // mov (%rsp), %rax
@@ -1757,7 +1757,7 @@ namespace eosio { namespace vm {
       void emit_f64_max() {
          auto icount = softfloat_instr(49, 47, 61);
          if(use_softfloat) {
-            emit_f64_binop_softfloat(CHOOSE_FN(_eosio_f64_max));
+            emit_f64_binop_softfloat(CHOOSE_FN(_eosio_f64_max<false>));
             return;
          }
          // mov (%rsp), %rax
@@ -2808,6 +2808,32 @@ namespace eosio { namespace vm {
          emit_v128_binop_softfloat(&_eosio_f32x4_ge);
       }
 
+      // ------------------- f64x2 compare -------------------
+
+      void emit_f64x2_eq() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_eq);
+      }
+
+      void emit_f64x2_ne() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_ne);
+      }
+
+      void emit_f64x2_lt() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_lt);
+      }
+
+      void emit_f64x2_gt() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_gt);
+      }
+
+      void emit_f64x2_le() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_le);
+      }
+
+      void emit_f64x2_ge() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_ge);
+      }
+
       // v128 logical ops
 
       void emit_v128_not() {
@@ -3515,7 +3541,7 @@ namespace eosio { namespace vm {
          emit_vmovups(xmm0, *rsp);
       }
 
-      // ----------- f32x4 arithmetic -------------------
+      // ------------- f32x4 arithmetic -------------------
 
       void emit_f32x4_ceil() {
          emit_v128_unop_softfloat(&_eosio_f32x4_ceil);
@@ -3575,6 +3601,68 @@ namespace eosio { namespace vm {
 
       void emit_f32x4_pmax() {
          emit_v128_binop_softfloat(&_eosio_f32x4_pmax);
+      }
+
+      // ------------- f64x2 arithmetic -------------------
+
+      void emit_f64x2_ceil() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_ceil);
+      }
+
+      void emit_f64x2_floor() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_floor);
+      }
+
+      void emit_f64x2_trunc() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_trunc);
+      }
+
+      void emit_f64x2_nearest() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_nearest);
+      }
+
+      void emit_f64x2_abs() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_abs);
+      }
+
+      void emit_f64x2_neg() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_neg);
+      }
+
+      void emit_f64x2_sqrt() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_sqrt);
+      }
+
+      void emit_f64x2_add() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_add);
+      }
+
+      void emit_f64x2_sub() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_sub);
+      }
+
+      void emit_f64x2_mul() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_mul);
+      }
+
+      void emit_f64x2_div() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_div);
+      }
+
+      void emit_f64x2_min() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_min);
+      }
+
+      void emit_f64x2_max() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_max);
+      }
+
+      void emit_f64x2_pmin() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_pmin);
+      }
+
+      void emit_f64x2_pmax() {
+         emit_v128_binop_softfloat(&_eosio_f64x2_pmax);
       }
 
       void emit_error() { unimplemented(); }

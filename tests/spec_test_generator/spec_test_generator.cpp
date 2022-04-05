@@ -1303,7 +1303,7 @@ void generate_tests(const map<string, vector<picojson::object>>& mappings) {
                exp_v += "nan_canonical_t{}";
                has_nan = true;
             } else {
-               exp_v += elem.to_str();
+               exp_v += elem.to_str() + "u";
             }
          }
          if(has_nan) {
