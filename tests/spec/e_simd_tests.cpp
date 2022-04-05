@@ -22,5 +22,6 @@ BACKEND_TEST_CASE( "Testing wasm <e_simd_0_wasm>", "[e_simd_0_wasm_tests]" ) {
 
    CHECK(bkend.call_with_return("env", "v128.select", make_v128_i64(81985529216486895,18364758544493064720), make_v128_i64(4822678189205111,9843086184167632639), UINT32_C(0))->to_v128() == make_v128_i64(4822678189205111u,9843086184167632639u));
    CHECK(bkend.call_with_return("env", "v128.select", make_v128_i64(81985529216486895,18364758544493064720), make_v128_i64(4822678189205111,9843086184167632639), UINT32_C(1))->to_v128() == make_v128_i64(81985529216486895u,18364758544493064720u));
+   CHECK(bkend.call_with_return("env", "v128.br")->to_ui64() == UINT64_C(3689348814741910323));
 }
 

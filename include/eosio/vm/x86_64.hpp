@@ -246,6 +246,13 @@ namespace eosio { namespace vm {
          emit(RET);
          assert((char*)code <= (char*)epilogue_start + max_epilogue_size);
       }
+      static constexpr uint32_t get_depth_for_type(uint8_t type) {
+         if(type == types::v128) {
+            return 2;
+         } else {
+            return 1;
+         }
+      }
 
       void emit_unreachable() {
          auto icount = fixed_size_instr(16);

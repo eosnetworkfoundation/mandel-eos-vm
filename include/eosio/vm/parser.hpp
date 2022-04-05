@@ -654,7 +654,7 @@ namespace eosio { namespace vm {
             assert(type != unreachable_tag && type != scope_tag);
             assert(type == types::i32 || type == types::i64 || type == types::f32 || type == types::f64 || type == any_type || (type == types::v128 && detail::get_enable_simd(options)));
             EOS_VM_ASSERT(operand_depth < std::numeric_limits<uint32_t>::max(), wasm_parse_exception, "integer overflow in operand depth");
-            ++operand_depth;
+            operand_depth += Writer::get_depth_for_type(type);
             maximum_operand_depth = std::max(operand_depth, maximum_operand_depth);
             state.push_back(type);
             local_bytes_checker.push_stack(options, type);
@@ -666,7 +666,7 @@ namespace eosio { namespace vm {
             if (state.back() != unreachable_tag) {
                EOS_VM_ASSERT(state.back() == expected || state.back() == any_type, wasm_parse_exception, "wrong type");
                local_bytes_checker.pop_stack(options, expected);
-               --operand_depth;
+               operand_depth -= Writer::get_depth_for_type(expected);
                state.pop_back();
             }
          }
@@ -676,7 +676,7 @@ namespace eosio { namespace vm {
                return any_type;
             else {
                uint8_t result = state.back();
-               --operand_depth;
+               operand_depth -= Writer::get_depth_for_type(result);
                local_bytes_checker.pop_stack(options, result);
                state.pop_back();
                return result;
@@ -690,7 +690,7 @@ namespace eosio { namespace vm {
          void start_unreachable() {
             while(!state.empty() && state.back() != scope_tag) {
                if (state.back() != unreachable_tag)
-                  --operand_depth;
+                  operand_depth -= Writer::get_depth_for_type(state.back());
                state.pop_back();
             }
             local_bytes_checker.push_unreachable();

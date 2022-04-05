@@ -51,6 +51,7 @@ macro( add_spec_test name )
    endif()
 endmacro()
 
+if(0)
 foreach(testcase
     simd_address simd_align simd_bit_shift simd_bitwise simd_boolean simd_const
     simd_conversions
@@ -70,7 +71,8 @@ foreach(testcase
     simd_store8_lane simd_store16_lane simd_store32_lane simd_store64_lane
     )
    add_spec_test(${testcase})
-endforeach()
+ endforeach()
+ endif()
 
 if (ENABLE_SPEC_TESTS)
 
