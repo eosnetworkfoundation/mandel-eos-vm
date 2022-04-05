@@ -522,6 +522,62 @@ inline double _eosio_ui64_to_f64( uint64_t a ) {
    return from_softfloat64(ui64_to_f64( a ));
 }
 
+inline int32_t _eosio_i32_trunc_sat_f32_s( float af ){
+   float32_t a = to_softfloat32(af);
+   if(is_nan(a)) {
+      return 0;
+   }
+   if(_eosio_f32_ge(af, 2147483648.0f)) {
+      return INT32_MAX;
+   }
+   if(_eosio_f32_lt(af, -2147483648.0f)) {
+      return INT32_MIN;
+   }
+   return f32_to_i32_r_minMag(a, false);
+}
+
+inline uint32_t _eosio_i32_trunc_sat_f32_u( float af ){
+   float32_t a = to_softfloat32(af);
+   if(is_nan(a)) {
+      return 0;
+   }
+   if(_eosio_f32_ge(af, 4294967296.0f)) {
+      return UINT32_MAX;
+   }
+   if(_eosio_f32_le(af, -1.0f)) {
+      return 0;
+   }
+   return f32_to_ui32_r_minMag(a, false);
+}
+
+inline int32_t _eosio_i32_trunc_sat_f64_s( double af ){
+   float64_t a = to_softfloat64(af);
+   if(is_nan(a)) {
+      return 0;
+   }
+   if(_eosio_f64_ge(af, 2147483648.0f)) {
+      return INT32_MAX;
+   }
+   if(_eosio_f64_lt(af, -2147483648.0f)) {
+      return INT32_MIN;
+   }
+   return f64_to_i32_r_minMag(a, false);
+}
+
+inline uint32_t _eosio_i32_trunc_sat_f64_u( double af ){
+   float64_t a = to_softfloat64(af);
+   if(is_nan(a)) {
+      return 0;
+   }
+   if(_eosio_f64_ge(af, 4294967296.0f)) {
+      return UINT32_MAX;
+   }
+   if(_eosio_f64_le(af, -1.0f)) {
+      return 0;
+   }
+   return f64_to_ui32_r_minMag(a, false);
+}
+
 template<typename F, typename R, typename... T>
 auto get_funptr(F f, R (F::*)(T...) const) {
    return static_cast<R(*)(T...)>(f);
@@ -803,6 +859,77 @@ inline v128_t _eosio_f64x2_pmin(v128_t a, v128_t b) {
 
 inline v128_t _eosio_f64x2_pmax(v128_t a, v128_t b) {
    return apply_f64x2(a, b, [](float64_t a, float64_t b) { return ::f64_lt(a, b)?b:a; });
+}
+
+inline v128_t _eosio_i32x4_trunc_sat_f32x4_s(v128_t a) {
+   return apply_f32x4(a, _eosio_i32_trunc_sat_f32_s);
+}
+
+inline v128_t _eosio_i32x4_trunc_sat_f32x4_u(v128_t a) {
+   return apply_f32x4(a, _eosio_i32_trunc_sat_f32_u);
+}
+
+inline v128_t _eosio_f32x4_convert_i32x4_s(v128_t a) {
+   return apply_f32x4(a, _eosio_i32_to_f32);
+}
+
+inline v128_t _eosio_f32x4_convert_i32x4_u(v128_t a) {
+   return apply_f32x4(a, _eosio_ui32_to_f32);
+}
+
+template<typename R, typename T>
+inline v128_t apply_f64x2_zero(v128_t a, R(*f)(T)) {
+   T a_[2];
+   R result_[4];
+   static_assert(sizeof(a_) == sizeof(a));
+   std::memcpy(&a_, &a, sizeof(a));
+   for(int i = 0; i < 2; ++i) {
+      result_[i] = f(a_[i]);
+   }
+   result_[2] = result_[3] = 0;
+   v128_t result;
+   static_assert(sizeof(result_) == sizeof(result));
+   memcpy(&result, &result_, sizeof(result));
+   return result;
+}
+
+template<typename R, typename T>
+inline v128_t apply_f32x4_low(v128_t a, R(*f)(T)) {
+   T a_[4];
+   R result_[2];
+   static_assert(sizeof(a_) == sizeof(a));
+   std::memcpy(&a_, &a, sizeof(a));
+   for(int i = 0; i < 2; ++i) {
+      result_[i] = f(a_[i]);
+   }
+   v128_t result;
+   static_assert(sizeof(result_) == sizeof(result));
+   memcpy(&result, &result_, sizeof(result));
+   return result;
+}
+
+inline v128_t _eosio_i32x4_trunc_sat_f64x2_s_zero(v128_t a) {
+   return apply_f64x2_zero(a, _eosio_i32_trunc_sat_f64_s);
+}
+
+inline v128_t _eosio_i32x4_trunc_sat_f64x2_u_zero(v128_t a) {
+   return apply_f64x2_zero(a, _eosio_i32_trunc_sat_f64_u);
+}
+
+inline v128_t _eosio_f64x2_convert_low_i32x4_s(v128_t a) {
+   return apply_f32x4_low(a, _eosio_i32_to_f64);
+}
+
+inline v128_t _eosio_f64x2_convert_low_i32x4_u(v128_t a) {
+   return apply_f32x4_low(a, _eosio_ui32_to_f64);
+}
+
+inline v128_t _eosio_f32x4_demote_f64x2_zero(v128_t a) {
+   return apply_f64x2_zero(a, _eosio_f64_demote);
+}
+
+inline v128_t _eosio_f64x2_promote_low_f32x4(v128_t a) {
+   return apply_f32x4_low(a, _eosio_f32_promote);
 }
 
 }} //ns eosio::vm

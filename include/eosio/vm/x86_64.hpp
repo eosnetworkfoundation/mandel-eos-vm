@@ -185,25 +185,35 @@ namespace eosio { namespace vm {
          emit_bytes(0x55);
          // movq RSP, RBP
          emit_bytes(0x48, 0x89, 0xe5);
-         // No more than 2^32-1 locals.  Already validated by the parser.
-         uint32_t count = 0;
+         uint64_t count = 0;
          for(uint32_t i = 0; i < locals.size(); ++i) {
-            assert(uint64_t(count) + locals[i].count <= 0xFFFFFFFFu);
             count += locals[i].count;
+            if(locals[i].type == types::v128) {
+               count += locals[i].count;
+            }
          }
          _local_count = count;
          if (_local_count > 0) {
             // xor %rax, %rax
             emit_bytes(0x48, 0x31, 0xc0);
             if (_local_count > 14) { // only use a loop if it would save space
-               // mov $count, %ecx
-               emit_bytes(0xb9);
-               emit_operand32(_local_count);
+               if(count > 0xFFFFFFFFu) {
+                  // movabsq $count, %rcx
+                  emit_bytes(0x48, 0xb9);
+                  emit_operand64(_local_count);
+               } else {
+                  // mov $count, %ecx
+                  emit_bytes(0xb9);
+                  emit_operand32(static_cast<uint32_t>(_local_count));
+               }
                // loop:
                void* loop = code;
                // pushq %rax
                emit_bytes(0x50);
                // dec %ecx
+               if(_local_count > 0xFFFFFFFFu) {
+                  emit_bytes(0x48);
+               }
                emit_bytes(0xff, 0xc9);
                // jnz loop
                emit_bytes(0x0f, 0x85);
@@ -3665,6 +3675,48 @@ namespace eosio { namespace vm {
          emit_v128_binop_softfloat(&_eosio_f64x2_pmax);
       }
 
+      // --------------- SIMD conversions ----------------
+
+      void emit_i32x4_trunc_sat_f32x4_s() {
+         emit_v128_unop_softfloat(&_eosio_i32x4_trunc_sat_f32x4_s);
+      }
+
+      void emit_i32x4_trunc_sat_f32x4_u() {
+         emit_v128_unop_softfloat(&_eosio_i32x4_trunc_sat_f32x4_u);
+      }
+
+      void emit_f32x4_convert_i32x4_s() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_convert_i32x4_s);
+      }
+
+      void emit_f32x4_convert_i32x4_u() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_convert_i32x4_u);
+      }
+
+      void emit_i32x4_trunc_sat_f64x2_s_zero() {
+         emit_v128_unop_softfloat(&_eosio_i32x4_trunc_sat_f64x2_s_zero);
+      }
+
+      void emit_i32x4_trunc_sat_f64x2_u_zero() {
+         emit_v128_unop_softfloat(&_eosio_i32x4_trunc_sat_f64x2_u_zero);
+      }
+
+      void emit_f64x2_convert_low_i32x4_s() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_convert_low_i32x4_s);
+      }
+
+      void emit_f64x2_convert_low_i32x4_u() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_convert_low_i32x4_u);
+      }
+
+      void emit_f32x4_demote_f64x2_zero() {
+         emit_v128_unop_softfloat(&_eosio_f32x4_demote_f64x2_zero);
+      }
+
+      void emit_f64x2_promote_low_f32x4() {
+         emit_v128_unop_softfloat(&_eosio_f64x2_promote_low_f32x4);
+      }
+
       void emit_error() { unimplemented(); }
 
       // --------------- random  ------------------------
@@ -4303,7 +4355,7 @@ namespace eosio { namespace vm {
       void* type_error_handler;
       void* stack_overflow_handler;
       void* jmp_table;
-      uint32_t _local_count;
+      uint64_t _local_count;
       uint32_t _table_element_size;
 
       void emit_byte(uint8_t val) { *code++ = val; }

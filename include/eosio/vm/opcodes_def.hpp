@@ -525,7 +525,18 @@
    opcode_macro(f64x2_min, 244)                 \
    opcode_macro(f64x2_max, 245)                 \
    opcode_macro(f64x2_pmin, 246)                \
-   opcode_macro(f64x2_pmax, 247)
+   opcode_macro(f64x2_pmax, 247)                \
+                                                \
+   opcode_macro(i32x4_trunc_sat_f32x4_s, 248)   \
+   opcode_macro(i32x4_trunc_sat_f32x4_u, 249)   \
+   opcode_macro(f32x4_convert_i32x4_s, 250)     \
+   opcode_macro(f32x4_convert_i32x4_u, 251)     \
+   opcode_macro(i32x4_trunc_sat_f64x2_s_zero, 252)\
+   opcode_macro(i32x4_trunc_sat_f64x2_u_zero, 253)\
+   opcode_macro(f64x2_convert_low_i32x4_s, 254) \
+   opcode_macro(f64x2_convert_low_i32x4_u, 255) \
+   opcode_macro(f32x4_demote_f64x2_zero, 94)    \
+   opcode_macro(f64x2_promote_low_f32x4, 95)
 
 /* clang-format on */
 

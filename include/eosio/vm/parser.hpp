@@ -1590,6 +1590,17 @@ namespace eosio { namespace vm {
                      NUMERIC_OP(f64x2_pmin, (v128, v128), (v128));
                      NUMERIC_OP(f64x2_pmax, (v128, v128), (v128));
 
+                     NUMERIC_OP(i32x4_trunc_sat_f32x4_s, (v128), (v128));
+                     NUMERIC_OP(i32x4_trunc_sat_f32x4_u, (v128), (v128));
+                     NUMERIC_OP(f32x4_convert_i32x4_s, (v128), (v128));
+                     NUMERIC_OP(f32x4_convert_i32x4_u, (v128), (v128));
+                     NUMERIC_OP(i32x4_trunc_sat_f64x2_s_zero, (v128), (v128));
+                     NUMERIC_OP(i32x4_trunc_sat_f64x2_u_zero, (v128), (v128));
+                     NUMERIC_OP(f64x2_convert_low_i32x4_s, (v128), (v128));
+                     NUMERIC_OP(f64x2_convert_low_i32x4_u, (v128), (v128));
+                     NUMERIC_OP(f32x4_demote_f64x2_zero, (v128), (v128));
+                     NUMERIC_OP(f64x2_promote_low_f32x4, (v128), (v128));
+
 #undef NUMERIC_OP
 #undef VA_SZ
 #undef VA_SZ_I
