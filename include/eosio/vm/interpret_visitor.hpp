@@ -791,7 +791,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f32();
          if constexpr (use_softfloat)
-            oper = _eosio_f32_ceil(oper);
+            oper = _eosio_f32_ceil<false>(oper);
          else
             oper = __builtin_ceilf(oper);
       }
@@ -799,7 +799,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f32();
          if constexpr (use_softfloat)
-            oper = _eosio_f32_floor(oper);
+            oper = _eosio_f32_floor<false>(oper);
          else
             oper = __builtin_floorf(oper);
       }
@@ -807,7 +807,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f32();
          if constexpr (use_softfloat)
-            oper = _eosio_f32_trunc(oper);
+            oper = _eosio_f32_trunc<false>(oper);
          else
             oper = __builtin_trunc(oper);
       }
@@ -815,7 +815,7 @@ namespace eosio { namespace vm {
          context.inc_pc();
          auto& oper = context.peek_operand().to_f32();
          if constexpr (use_softfloat)
-            oper = _eosio_f32_nearest(oper);
+            oper = _eosio_f32_nearest<false>(oper);
          else
             oper = __builtin_nearbyintf(oper);
       }
@@ -868,7 +868,7 @@ namespace eosio { namespace vm {
          const auto& rhs = context.pop_operand();
          auto&       lhs = context.peek_operand().to_f32();
          if constexpr (use_softfloat)
-            lhs = _eosio_f32_min(lhs, rhs.to_f32());
+            lhs = _eosio_f32_min<false>(lhs, rhs.to_f32());
          else
             lhs = __builtin_fminf(lhs, rhs.to_f32());
       }
@@ -877,7 +877,7 @@ namespace eosio { namespace vm {
          const auto& rhs = context.pop_operand();
          auto&       lhs = context.peek_operand().to_f32();
          if constexpr (use_softfloat)
-            lhs = _eosio_f32_max(lhs, rhs.to_f32());
+            lhs = _eosio_f32_max<false>(lhs, rhs.to_f32());
          else
             lhs = __builtin_fmaxf(lhs, rhs.to_f32());
       }
