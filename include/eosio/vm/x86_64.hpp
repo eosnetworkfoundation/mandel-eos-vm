@@ -464,18 +464,28 @@ namespace eosio { namespace vm {
          }
       }
 
-      void emit_select() {
-         auto icount = fixed_size_instr(13);
-         // popq RAX
-         emit_bytes(0x58);
-         // popq RCX
-         emit_bytes(0x59);
-         // test EAX, EAX
-         emit_bytes(0x85, 0xc0);
-         // cmovnzq RCX, (RSP)
-         emit_bytes(0x48, 0x0f, 0x45, 0x0c, 0x24);
-         // movq (RSP), RCX
-         emit_bytes(0x48, 0x89, 0x0c, 0x24);
+      void emit_select(uint8_t type) {
+         auto icount = fixed_size_instr(13); // FIXME
+         if(type == types::v128) {
+            emit_pop(rax);
+            emit(TESTQ, rax, rax);
+            auto cond = emit_branch8(JNZ);
+            emit_vmovups(*rsp, xmm0);
+            emit_vmovups(xmm0, *(rsp + 16));
+            fix_branch8(cond, code);
+            emit_add(16, rsp);
+         } else {
+            // popq RAX
+            emit_bytes(0x58);
+            // popq RCX
+            emit_bytes(0x59);
+            // test EAX, EAX
+            emit_bytes(0x85, 0xc0);
+            // cmovnzq RCX, (RSP)
+            emit_bytes(0x48, 0x0f, 0x45, 0x0c, 0x24);
+            // movq (RSP), RCX
+            emit_bytes(0x48, 0x89, 0x0c, 0x24);
+         }
       }
 
       void emit_get_local(uint32_t local_idx, uint8_t type) {

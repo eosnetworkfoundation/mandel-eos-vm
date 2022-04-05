@@ -968,12 +968,12 @@ namespace eosio { namespace vm {
                case opcodes::drop: check_in_bounds(); code_writer.emit_drop(op_stack.pop()); break;
                case opcodes::select: {
                   check_in_bounds();
-                  code_writer.emit_select();
                   op_stack.pop(types::i32);
                   uint8_t t0 = op_stack.pop();
                   uint8_t t1 = op_stack.pop();
                   EOS_VM_ASSERT(t0 == t1 || t0 == any_type || t1 == any_type, wasm_parse_exception, "incorrect types for select");
                   op_stack.push(t0 != any_type? t0 : t1);
+                  code_writer.emit_select(t0);
                } break;
                case opcodes::get_local: {
                   uint32_t local_idx = parse_varuint32(code);

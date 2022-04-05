@@ -98,6 +98,7 @@ add_spec_test_impl(e_locals ${CMAKE_CURRENT_SOURCE_DIR}/spec/extra/locals.wast)
 add_spec_test_impl(e_module ${CMAKE_CURRENT_SOURCE_DIR}/spec/extra/module.wast)
 add_spec_test_impl(e_table ${CMAKE_CURRENT_SOURCE_DIR}/spec/extra/table.wast)
 endif()
+add_spec_test_impl(e_simd ${CMAKE_CURRENT_SOURCE_DIR}/spec/extra/simd.wast)
 
 add_executable( eos_vm_spec_tests main.cpp ${SPEC_TESTS} )
 target_link_libraries( eos_vm_spec_tests eos-vm Catch2::Catch2 )

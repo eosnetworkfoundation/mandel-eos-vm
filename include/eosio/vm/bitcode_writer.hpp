@@ -94,7 +94,7 @@ namespace eosio { namespace vm {
 
 
       void emit_drop(uint8_t /*type*/) { fb[op_index++] = drop_t{}; }
-      void emit_select() { fb[op_index++] = select_t{}; }
+      void emit_select(uint8_t /*type*/) { fb[op_index++] = select_t{}; }
       void emit_get_local(uint32_t localidx, uint8_t /*type*/) { fb[op_index++] = get_local_t{localidx}; }
       void emit_set_local(uint32_t localidx, uint8_t /*type*/) { fb[op_index++] = set_local_t{localidx}; }
       void emit_tee_local(uint32_t localidx, uint8_t /*type*/) { fb[op_index++] = tee_local_t{localidx}; }
