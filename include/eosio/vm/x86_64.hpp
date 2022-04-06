@@ -3775,21 +3775,29 @@ namespace eosio { namespace vm {
     private:
 
       enum class imm8 : uint8_t {};
-      enum general_register {
+      enum general_register64 {
           rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
-          r8, r9, r10, r11, r12, r13, r14, r15,
-          eax = rax, ecx, edx, ebx, esp, ebp, esi, edi
+          r8, r9, r10, r11, r12, r13, r14, r15
       };
-      struct simple_memory_ref { general_register reg; };
-      inline friend simple_memory_ref operator*(general_register reg) { return { reg }; }
-      struct register_add_expr { general_register reg; int32_t offset; };
-      inline friend register_add_expr operator+(general_register reg, int32_t offset) { return { reg, offset }; }
-      inline friend register_add_expr operator+(int32_t offset, general_register reg) { return { reg, offset }; }
-      inline friend register_add_expr operator-(general_register reg, int32_t offset) { return { reg, -offset }; }
+      enum general_register32 {
+          eax, ecx, edx, ebx, esp, ebp, esi, edi,
+          r8d, r9d, r10d, r11d, r12d, r13d, r14d, r15d
+      };
+      struct general_register {
+         constexpr general_register(general_register32 reg) : reg(reg) {}
+         constexpr general_register(general_register64 reg) : reg(reg) {}
+         int reg;
+      };
+      struct simple_memory_ref { general_register64 reg; };
+      inline friend simple_memory_ref operator*(general_register64 reg) { return { reg }; }
+      struct register_add_expr { general_register64 reg; int32_t offset; };
+      inline friend register_add_expr operator+(general_register64 reg, int32_t offset) { return { reg, offset }; }
+      inline friend register_add_expr operator+(int32_t offset, general_register64 reg) { return { reg, offset }; }
+      inline friend register_add_expr operator-(general_register64 reg, int32_t offset) { return { reg, -offset }; }
       struct disp_memory_ref {
-         constexpr disp_memory_ref(general_register reg, int32_t offset) : reg(reg), offset(offset) {}
+         constexpr disp_memory_ref(general_register64 reg, int32_t offset) : reg(reg), offset(offset) {}
          constexpr disp_memory_ref(simple_memory_ref other) : reg(other.reg), offset(0) {}
-         general_register reg;
+         general_register64 reg;
          int32_t offset;
       };
       inline friend disp_memory_ref operator*(register_add_expr expr) { return { expr.reg, expr.offset }; }
@@ -3797,8 +3805,15 @@ namespace eosio { namespace vm {
           xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,
           xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
       };
+      struct any_register {
+         constexpr any_register(general_register32 reg) : reg(reg) {}
+         constexpr any_register(general_register64 reg) : reg(reg) {}
+         constexpr any_register(general_register reg) : reg(reg.reg) {}
+         constexpr any_register(xmm_register reg) : reg(reg) {}
+         int reg;
+      };
 
-      void emit_add(int32_t immediate, general_register dest) {
+      void emit_add(int32_t immediate, general_register64 dest) {
          if(immediate <= 0x7F || immediate >= -0x80) {
             emit(IA32_REX_W(0x83)/0, static_cast<imm8>(immediate), dest);
          } else {
@@ -3806,7 +3821,7 @@ namespace eosio { namespace vm {
          }
       }
       
-      void emit_sub(int32_t immediate, general_register dest) {
+      void emit_sub(int32_t immediate, general_register64 dest) {
          if(immediate <= 0x7F || immediate >= -0x80) {
             emit(IA32_REX_W(0x83)/5, static_cast<imm8>(immediate), dest);
          } else {
@@ -3814,7 +3829,7 @@ namespace eosio { namespace vm {
          }
       }
 
-      void emit_call(general_register reg) {
+      void emit_call(general_register64 reg) {
          emit(IA32(0xff)/2, reg);
       }
 
@@ -3841,43 +3856,43 @@ namespace eosio { namespace vm {
          emit_operand32(src);
       }
 
-      void emit_movd(uint32_t src, general_register dest) {
+      void emit_movd(uint32_t src, general_register32 dest) {
          emit_REX_prefix(false, false, false, dest & 8);
          emit_bytes(0xb8 | (dest & 7));
          emit_operand32(src);
       }
 
-      void emit_movd(general_register src, general_register dest) {
+      void emit_movd(general_register32 src, general_register32 dest) {
          emit(IA32(0x8b), src, dest);
       }
 
-      void emit_movd(disp_memory_ref mem, general_register reg) {
+      void emit_movd(disp_memory_ref mem, general_register32 reg) {
          emit(IA32(0x8b), mem, reg);
       }
 
-      void emit_movq(general_register src, general_register dest) {
+      void emit_movq(general_register64 src, general_register64 dest) {
          emit(IA32_REX_W(0x8b), src, dest);
       }
 
-      void emit_movq(disp_memory_ref mem, general_register reg) {
+      void emit_movq(disp_memory_ref mem, general_register64 reg) {
          emit(IA32_REX_W(0x8b), mem, reg);
       }
 
-      void emit_movq(general_register reg, disp_memory_ref mem) {
+      void emit_movq(general_register64 reg, disp_memory_ref mem) {
          emit(IA32_REX_W(0x89), mem, reg);
       }
 
-      void emit_pop(general_register reg) {
+      void emit_pop(general_register64 reg) {
          emit_REX_prefix(false, false, false, reg & 8);
          emit_bytes(0x58 | (reg & 7));
       }
 
-      void emit_push(general_register reg) {
+      void emit_push(general_register64 reg) {
          emit_REX_prefix(false, false, false, reg & 8);
          emit_bytes(0x50 | (reg & 7));
       }
 
-      void emit_xord(general_register src, general_register dest) {
+      void emit_xord(general_register32 src, general_register32 dest) {
          emit(IA32(0x33), src, dest);
       }
 
@@ -3916,7 +3931,7 @@ namespace eosio { namespace vm {
          emit(VEX_128_0F_WIG{0x11}, mem, reg);
       }
 
-      void emit_vmovd(general_register src, xmm_register dest) {
+      void emit_vmovd(general_register32 src, xmm_register dest) {
          emit(VEX_128_66_0F_W0{0x6e}, src, dest);
       }
 
@@ -4098,7 +4113,7 @@ namespace eosio { namespace vm {
       }
 
       void emit_REX_prefix(bool W, general_register r_m, int reg) {
-         emit_REX_prefix(W, reg & 8, false, r_m & 8);
+         emit_REX_prefix(W, reg & 8, false, r_m.reg & 8);
       }
 
       void emit_REX_prefix(bool W, disp_memory_ref mem, int reg) {
@@ -4142,8 +4157,8 @@ namespace eosio { namespace vm {
          }
       }
 
-      void emit_modrm_sib_disp(int r_m, int reg) {
-         emit_bytes(0xc0 | ((reg & 7) << 3) | (r_m & 7));
+      void emit_modrm_sib_disp(any_register r_m, int reg) {
+         emit_bytes(0xc0 | ((reg & 7) << 3) | (r_m.reg & 7));
       }
 
       template<bool W, int N>
@@ -4201,7 +4216,7 @@ namespace eosio { namespace vm {
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
       void emit(VEX<Sz, pp, mmmm, W> opcode, general_register src1, xmm_register src2) {
-         emit_VEX_prefix(src2 & 8, false, src1 & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_VEX_prefix(src2 & 8, false, src1.reg & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src1, src2);
       }
@@ -4215,9 +4230,9 @@ namespace eosio { namespace vm {
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
       void emit(VEX<Sz, pp, mmmm, W> opcode, xmm_register src1, general_register src2) {
-         emit_VEX_prefix(src2 & 8, false, src1 & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_VEX_prefix(src2.reg & 8, false, src1 & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
-         emit_modrm_sib_disp(src1, src2);
+         emit_modrm_sib_disp(src1, src2.reg);
       }
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
@@ -4238,7 +4253,7 @@ namespace eosio { namespace vm {
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
       void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 src1, general_register src2, xmm_register dest) {
-         emit_VEX_prefix(dest & 8, false, src2 & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_VEX_prefix(dest & 8, false, src2.reg & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src2, dest);
          emit_byte(static_cast<uint8_t>(src1));
@@ -4246,9 +4261,9 @@ namespace eosio { namespace vm {
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
       void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 src1, xmm_register src2, general_register dest) {
-         emit_VEX_prefix(dest & 8, false, src2 & 8, mmmm, W, 0, Sz == 256, pp);
+         emit_VEX_prefix(dest.reg & 8, false, src2 & 8, mmmm, W, 0, Sz == 256, pp);
          emit_bytes(opcode.opcode);
-         emit_modrm_sib_disp(src2, dest);
+         emit_modrm_sib_disp(src2, dest.reg);
          emit_byte(static_cast<uint8_t>(src1));
       }
 
@@ -4982,7 +4997,7 @@ namespace eosio { namespace vm {
          emit_bytes(0x51);
          emit_bytes(0x51);
       }
-      void emit_align_stack(general_register temp) {
+      void emit_align_stack(general_register64 temp) {
          // mov %rsp, %temp; andq $-16, %rsp; push temp; push %temp
          if(temp & 8) unimplemented();
          emit_bytes(0x48, 0x89, 0xe0 | temp);
