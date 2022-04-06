@@ -40,9 +40,10 @@ namespace eosio { namespace vm {
          _code_start = _mod.allocator.alloc<unsigned char>(128);
          _code_end = _code_start + 128;
          code = _code_start;
-         // TODO: shrink to fit
-
          emit_sysv_abi_interface();
+         assert(code <= _code_end);
+         _mod.allocator.reclaim(code, _code_end - code);
+
          const std::size_t code_size = 4 * 16; // 4 error handlers, each is 16 bytes.
          _code_start = _mod.allocator.alloc<unsigned char>(code_size);
          _code_end = _code_start + code_size;
@@ -114,9 +115,7 @@ namespace eosio { namespace vm {
          // void* stack -> R8
          // uint64_t count -> R9
          // uint32_t vector_result -> (RBP + 16)
-         emit_push(rbp);
-         emit_movq(rsp, rbp);
-         emit_sub(16, rsp);
+         emit_enter(16);
 
          // switch stack
          emit(TESTQ, r8, r8);
@@ -163,8 +162,7 @@ namespace eosio { namespace vm {
          emit_vpextrq(1, xmm0, rdx);
          fix_branch8(is_vector, code);
 
-         emit_movq(rbp, rsp);
-         emit_pop(rbp);
+         emit(LEAVE);
          emit(RET);
       }
 
@@ -3820,6 +3818,12 @@ namespace eosio { namespace vm {
          emit(IA32(0xff)/2, reg);
       }
 
+      void emit_enter(uint16_t offset) {
+         emit_bytes(0xc8);
+         emit_operand16(offset);
+         emit_bytes(0x00);
+      }
+
       void emit_ldmxcsr(disp_memory_ref mem) {
          emit_REX_prefix(false, mem, 0);
          emit_bytes(0x0f, 0xae);
@@ -3974,6 +3978,7 @@ namespace eosio { namespace vm {
       static constexpr auto JZ = Jcc{0x74};
       static constexpr auto JNZ = Jcc{0x75};
       static constexpr auto LDMXCSR = IA32(0x0f, 0xae)/2;
+      static constexpr auto LEAVE = IA32(0xc9);
       static constexpr auto STMXCSR = IA32(0x0f, 0xae)/3;
       static constexpr auto RET = IA32(0xc3);
       static constexpr auto TESTD = IA32(0x85);
@@ -4382,6 +4387,7 @@ namespace eosio { namespace vm {
          emit_byte(val0);
          emit_bytes(vals...);
       }
+      void emit_operand16(uint16_t val) { memcpy(code, &val, sizeof(val)); code += sizeof(val); }
       void emit_operand32(uint32_t val) { memcpy(code, &val, sizeof(val)); code += sizeof(val); }
       void emit_operand64(uint64_t val) { memcpy(code, &val, sizeof(val)); code += sizeof(val); }
       void emit_operandf32(float val) { memcpy(code, &val, sizeof(val)); code += sizeof(val); }
