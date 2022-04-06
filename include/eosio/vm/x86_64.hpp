@@ -536,7 +536,7 @@ namespace eosio { namespace vm {
          auto addr = *(rbp + get_frame_offset(local_idx));
          if (type != types::v128) {
             emit_movq(*rsp, rax);
-            emit_movq(rax, *(rbp + _params.get_frame_offset(local_idx)));
+            emit_movq(rax, addr);
          } else {
             emit_vmovups(*rsp, xmm0);
             emit_vmovups(xmm0, addr);
