@@ -25,6 +25,7 @@ namespace eosio { namespace vm {
          fb(alloc, source_bytes),
          _mod(&mod) {}
       ~bitcode_writer() { _allocator.end_code<false>(_code_segment_base); }
+      static constexpr uint32_t get_depth_for_type(uint8_t /*type*/) { return 1; }
       void emit_unreachable() { fb[op_index++] = unreachable_t{}; };
       void emit_nop() { fb[op_index++] = nop_t{}; }
       uint32_t emit_end() { return op_index; }

@@ -424,6 +424,16 @@ class null_writer {
    void emit_f64x2_max() {}
    void emit_f64x2_pmin() {}
    void emit_f64x2_pmax() {}
+   void emit_i32x4_trunc_sat_f32x4_s() {}
+   void emit_i32x4_trunc_sat_f32x4_u() {}
+   void emit_f32x4_convert_i32x4_s() {}
+   void emit_f32x4_convert_i32x4_u() {}
+   void emit_i32x4_trunc_sat_f64x2_s_zero() {}
+   void emit_i32x4_trunc_sat_f64x2_u_zero() {}
+   void emit_f64x2_convert_low_i32x4_s() {}
+   void emit_f64x2_convert_low_i32x4_u() {}
+   void emit_f32x4_demote_f64x2_zero() {}
+   void emit_f64x2_promote_low_f32x4() {}
 
    void fix_branch(branch_t, label_t) {}
    void emit_prologue(const func_type& /*ft*/, const guarded_vector<local_entry>& /*locals*/, uint32_t /*idx*/) {}
