@@ -3798,16 +3798,16 @@ namespace eosio { namespace vm {
           xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15
       };
 
-      void emit_add(uint32_t immediate, general_register dest) {
-         if(immediate <= 0x7Fu || immediate >= 0xFFFFFF80u) {
+      void emit_add(int32_t immediate, general_register dest) {
+         if(immediate <= 0x7F || immediate >= -0x80) {
             emit(IA32_REX_W(0x83)/0, static_cast<imm8>(immediate), dest);
          } else {
             unimplemented();
          }
       }
       
-      void emit_sub(uint32_t immediate, general_register dest) {
-         if(immediate <= 0x7Fu || immediate >= 0xFFFFFF80u) {
+      void emit_sub(int32_t immediate, general_register dest) {
+         if(immediate <= 0x7F || immediate >= -0x80) {
             emit(IA32_REX_W(0x83)/5, static_cast<imm8>(immediate), dest);
          } else {
             unimplemented();
