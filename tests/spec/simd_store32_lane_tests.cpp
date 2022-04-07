@@ -20,26 +20,26 @@ BACKEND_TEST_CASE( "Testing wasm <simd_store32_lane_0_wasm>", "[simd_store32_lan
    auto code = read_wasm( std::string(wasm_directory) + "simd_store32_lane.0.wasm");
    backend_t bkend( code, &wa );
 
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_0", UINT32_C(0), make_v128_i32(50462976,0,0,0))->to_ui64() == UINT64_C(50462976));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_1", UINT32_C(1), make_v128_i32(0,67305985,0,0))->to_ui64() == UINT64_C(67305985));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_2", UINT32_C(2), make_v128_i32(0,0,84148994,0))->to_ui64() == UINT64_C(84148994));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_3", UINT32_C(3), make_v128_i32(0,0,0,100992003))->to_ui64() == UINT64_C(100992003));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_offset_0", make_v128_i32(50462976,0,0,0))->to_ui64() == UINT64_C(50462976));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_offset_1", make_v128_i32(0,67305985,0,0))->to_ui64() == UINT64_C(67305985));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_offset_2", make_v128_i32(0,0,84148994,0))->to_ui64() == UINT64_C(84148994));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_offset_3", make_v128_i32(0,0,0,100992003))->to_ui64() == UINT64_C(100992003));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_align_1", UINT32_C(0), make_v128_i32(50462976,0,0,0))->to_ui64() == UINT64_C(50462976));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_align_2", UINT32_C(0), make_v128_i32(50462976,0,0,0))->to_ui64() == UINT64_C(50462976));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_align_4", UINT32_C(0), make_v128_i32(50462976,0,0,0))->to_ui64() == UINT64_C(50462976));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_align_1", UINT32_C(1), make_v128_i32(0,67305985,0,0))->to_ui64() == UINT64_C(67305985));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_align_2", UINT32_C(1), make_v128_i32(0,67305985,0,0))->to_ui64() == UINT64_C(67305985));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_align_4", UINT32_C(1), make_v128_i32(0,67305985,0,0))->to_ui64() == UINT64_C(67305985));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_align_1", UINT32_C(2), make_v128_i32(0,0,84148994,0))->to_ui64() == UINT64_C(84148994));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_align_2", UINT32_C(2), make_v128_i32(0,0,84148994,0))->to_ui64() == UINT64_C(84148994));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_align_4", UINT32_C(2), make_v128_i32(0,0,84148994,0))->to_ui64() == UINT64_C(84148994));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_align_1", UINT32_C(3), make_v128_i32(0,0,0,100992003))->to_ui64() == UINT64_C(100992003));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_align_2", UINT32_C(3), make_v128_i32(0,0,0,100992003))->to_ui64() == UINT64_C(100992003));
-   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_align_4", UINT32_C(3), make_v128_i32(0,0,0,100992003))->to_ui64() == UINT64_C(100992003));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_0", UINT32_C(0), make_v128_i32(50462976u,0u,0u,0u))->to_ui64() == UINT64_C(50462976));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_1", UINT32_C(1), make_v128_i32(0u,67305985u,0u,0u))->to_ui64() == UINT64_C(67305985));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_2", UINT32_C(2), make_v128_i32(0u,0u,84148994u,0u))->to_ui64() == UINT64_C(84148994));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_3", UINT32_C(3), make_v128_i32(0u,0u,0u,100992003u))->to_ui64() == UINT64_C(100992003));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_offset_0", make_v128_i32(50462976u,0u,0u,0u))->to_ui64() == UINT64_C(50462976));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_offset_1", make_v128_i32(0u,67305985u,0u,0u))->to_ui64() == UINT64_C(67305985));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_offset_2", make_v128_i32(0u,0u,84148994u,0u))->to_ui64() == UINT64_C(84148994));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_offset_3", make_v128_i32(0u,0u,0u,100992003u))->to_ui64() == UINT64_C(100992003));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_align_1", UINT32_C(0), make_v128_i32(50462976u,0u,0u,0u))->to_ui64() == UINT64_C(50462976));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_align_2", UINT32_C(0), make_v128_i32(50462976u,0u,0u,0u))->to_ui64() == UINT64_C(50462976));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_0_align_4", UINT32_C(0), make_v128_i32(50462976u,0u,0u,0u))->to_ui64() == UINT64_C(50462976));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_align_1", UINT32_C(1), make_v128_i32(0u,67305985u,0u,0u))->to_ui64() == UINT64_C(67305985));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_align_2", UINT32_C(1), make_v128_i32(0u,67305985u,0u,0u))->to_ui64() == UINT64_C(67305985));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_1_align_4", UINT32_C(1), make_v128_i32(0u,67305985u,0u,0u))->to_ui64() == UINT64_C(67305985));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_align_1", UINT32_C(2), make_v128_i32(0u,0u,84148994u,0u))->to_ui64() == UINT64_C(84148994));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_align_2", UINT32_C(2), make_v128_i32(0u,0u,84148994u,0u))->to_ui64() == UINT64_C(84148994));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_2_align_4", UINT32_C(2), make_v128_i32(0u,0u,84148994u,0u))->to_ui64() == UINT64_C(84148994));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_align_1", UINT32_C(3), make_v128_i32(0u,0u,0u,100992003u))->to_ui64() == UINT64_C(100992003));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_align_2", UINT32_C(3), make_v128_i32(0u,0u,0u,100992003u))->to_ui64() == UINT64_C(100992003));
+   CHECK(bkend.call_with_return("env", "v128.store32_lane_3_align_4", UINT32_C(3), make_v128_i32(0u,0u,0u,100992003u))->to_ui64() == UINT64_C(100992003));
 }
 
 BACKEND_TEST_CASE( "Testing wasm <simd_store32_lane_1_wasm>", "[simd_store32_lane_1_wasm_tests]" ) {

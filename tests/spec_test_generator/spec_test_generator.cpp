@@ -1169,7 +1169,7 @@ void translate_arg(std::ostream& ss, picojson::object arg) {
       for(auto elem : arg["value"].get<picojson::array>()) {
          if(!first) ss << ",";
          else first = false;
-         ss << elem.to_str();
+         ss << elem.to_str() << "u";
       }
       ss << ")";
    } else {

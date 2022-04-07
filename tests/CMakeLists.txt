@@ -51,7 +51,7 @@ macro( add_spec_test name )
    endif()
 endmacro()
 
-if(0)
+if(1)
 foreach(testcase
     simd_address simd_align simd_bit_shift simd_bitwise simd_boolean simd_const
     simd_conversions

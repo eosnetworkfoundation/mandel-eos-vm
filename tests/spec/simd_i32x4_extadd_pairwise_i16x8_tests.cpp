@@ -20,22 +20,22 @@ BACKEND_TEST_CASE( "Testing wasm <simd_i32x4_extadd_pairwise_i16x8_0_wasm>", "[s
    auto code = read_wasm( std::string(wasm_directory) + "simd_i32x4_extadd_pairwise_i16x8.0.wasm");
    backend_t bkend( code, &wa );
 
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(0,0,0,0,0,0,0,0))->to_v128() == make_v128_i32(0u,0u,0u,0u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(1,1,1,1,1,1,1,1))->to_v128() == make_v128_i32(2u,2u,2u,2u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(65535,65535,65535,65535,65535,65535,65535,65535))->to_v128() == make_v128_i32(4294967294u,4294967294u,4294967294u,4294967294u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32766,32766,32766,32766,32766,32766,32766,32766))->to_v128() == make_v128_i32(65532u,65532u,65532u,65532u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32769,32769,32769,32769,32769,32769,32769,32769))->to_v128() == make_v128_i32(4294901762u,4294901762u,4294901762u,4294901762u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32768,32768,32768,32768,32768,32768,32768,32768))->to_v128() == make_v128_i32(4294901760u,4294901760u,4294901760u,4294901760u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32767,32767,32767,32767,32767,32767,32767,32767))->to_v128() == make_v128_i32(65534u,65534u,65534u,65534u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(65535,65535,65535,65535,65535,65535,65535,65535))->to_v128() == make_v128_i32(4294967294u,4294967294u,4294967294u,4294967294u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(0,0,0,0,0,0,0,0))->to_v128() == make_v128_i32(0u,0u,0u,0u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(1,1,1,1,1,1,1,1))->to_v128() == make_v128_i32(2u,2u,2u,2u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(65535,65535,65535,65535,65535,65535,65535,65535))->to_v128() == make_v128_i32(131070u,131070u,131070u,131070u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32766,32766,32766,32766,32766,32766,32766,32766))->to_v128() == make_v128_i32(65532u,65532u,65532u,65532u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32769,32769,32769,32769,32769,32769,32769,32769))->to_v128() == make_v128_i32(65538u,65538u,65538u,65538u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32768,32768,32768,32768,32768,32768,32768,32768))->to_v128() == make_v128_i32(65536u,65536u,65536u,65536u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32767,32767,32767,32767,32767,32767,32767,32767))->to_v128() == make_v128_i32(65534u,65534u,65534u,65534u));
-   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(65535,65535,65535,65535,65535,65535,65535,65535))->to_v128() == make_v128_i32(131070u,131070u,131070u,131070u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(0u,0u,0u,0u,0u,0u,0u,0u))->to_v128() == make_v128_i32(0u,0u,0u,0u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(1u,1u,1u,1u,1u,1u,1u,1u))->to_v128() == make_v128_i32(2u,2u,2u,2u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(65535u,65535u,65535u,65535u,65535u,65535u,65535u,65535u))->to_v128() == make_v128_i32(4294967294u,4294967294u,4294967294u,4294967294u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32766u,32766u,32766u,32766u,32766u,32766u,32766u,32766u))->to_v128() == make_v128_i32(65532u,65532u,65532u,65532u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32769u,32769u,32769u,32769u,32769u,32769u,32769u,32769u))->to_v128() == make_v128_i32(4294901762u,4294901762u,4294901762u,4294901762u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32768u,32768u,32768u,32768u,32768u,32768u,32768u,32768u))->to_v128() == make_v128_i32(4294901760u,4294901760u,4294901760u,4294901760u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(32767u,32767u,32767u,32767u,32767u,32767u,32767u,32767u))->to_v128() == make_v128_i32(65534u,65534u,65534u,65534u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_s", make_v128_i16(65535u,65535u,65535u,65535u,65535u,65535u,65535u,65535u))->to_v128() == make_v128_i32(4294967294u,4294967294u,4294967294u,4294967294u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(0u,0u,0u,0u,0u,0u,0u,0u))->to_v128() == make_v128_i32(0u,0u,0u,0u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(1u,1u,1u,1u,1u,1u,1u,1u))->to_v128() == make_v128_i32(2u,2u,2u,2u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(65535u,65535u,65535u,65535u,65535u,65535u,65535u,65535u))->to_v128() == make_v128_i32(131070u,131070u,131070u,131070u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32766u,32766u,32766u,32766u,32766u,32766u,32766u,32766u))->to_v128() == make_v128_i32(65532u,65532u,65532u,65532u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32769u,32769u,32769u,32769u,32769u,32769u,32769u,32769u))->to_v128() == make_v128_i32(65538u,65538u,65538u,65538u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32768u,32768u,32768u,32768u,32768u,32768u,32768u,32768u))->to_v128() == make_v128_i32(65536u,65536u,65536u,65536u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(32767u,32767u,32767u,32767u,32767u,32767u,32767u,32767u))->to_v128() == make_v128_i32(65534u,65534u,65534u,65534u));
+   CHECK(bkend.call_with_return("env", "i32x4.extadd_pairwise_i16x8_u", make_v128_i16(65535u,65535u,65535u,65535u,65535u,65535u,65535u,65535u))->to_v128() == make_v128_i32(131070u,131070u,131070u,131070u));
 }
 
 BACKEND_TEST_CASE( "Testing wasm <simd_i32x4_extadd_pairwise_i16x8_1_wasm>", "[simd_i32x4_extadd_pairwise_i16x8_1_wasm_tests]" ) {

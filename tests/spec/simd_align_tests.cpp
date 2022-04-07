@@ -402,7 +402,7 @@ BACKEND_TEST_CASE( "Testing wasm <simd_align_90_wasm>", "[simd_align_90_wasm_tes
 
    CHECK(bkend.call_with_return("env", "v128.load align=16", UINT32_C(0))->to_v128() == make_v128_i32(0u,0u,0u,0u));
    CHECK(bkend.call_with_return("env", "v128.load align=16", UINT32_C(1))->to_v128() == make_v128_i32(0u,0u,0u,0u));
-   CHECK(!bkend.call_with_return("env", "v128.store align=16", UINT32_C(1), make_v128_i8(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)));
+   CHECK(!bkend.call_with_return("env", "v128.store align=16", UINT32_C(1), make_v128_i8(1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,11u,12u,13u,14u,15u,16u)));
    CHECK(bkend.call_with_return("env", "v128.load align=16", UINT32_C(0))->to_v128() == make_v128_i8(0u,1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,11u,12u,13u,14u,15u));
 }
 

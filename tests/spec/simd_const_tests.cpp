@@ -1873,9 +1873,9 @@ BACKEND_TEST_CASE( "Testing wasm <simd_const_386_wasm>", "[simd_const_386_wasm_t
    auto code = read_wasm( std::string(wasm_directory) + "simd_const.386.wasm");
    backend_t bkend( code, &wa );
 
-   CHECK(bkend.call_with_return("env", "as-local.set/get-value_0_0", make_v128_i32(0,0,0,0))->to_v128() == make_v128_i32(0u,0u,0u,0u));
-   CHECK(bkend.call_with_return("env", "as-local.set/get-value_0_1", make_v128_i32(1,1,1,1))->to_v128() == make_v128_i32(1u,1u,1u,1u));
-   CHECK(bkend.call_with_return("env", "as-local.set/get-value_3_0", make_v128_i32(2,2,2,2))->to_v128() == make_v128_i32(2u,2u,2u,2u));
+   CHECK(bkend.call_with_return("env", "as-local.set/get-value_0_0", make_v128_i32(0u,0u,0u,0u))->to_v128() == make_v128_i32(0u,0u,0u,0u));
+   CHECK(bkend.call_with_return("env", "as-local.set/get-value_0_1", make_v128_i32(1u,1u,1u,1u))->to_v128() == make_v128_i32(1u,1u,1u,1u));
+   CHECK(bkend.call_with_return("env", "as-local.set/get-value_3_0", make_v128_i32(2u,2u,2u,2u))->to_v128() == make_v128_i32(2u,2u,2u,2u));
    CHECK(bkend.call_with_return("env", "as-local.tee-value")->to_v128() == make_v128_i32(0u,1u,2u,3u));
 }
 
@@ -1884,7 +1884,7 @@ BACKEND_TEST_CASE( "Testing wasm <simd_const_387_wasm>", "[simd_const_387_wasm_t
    auto code = read_wasm( std::string(wasm_directory) + "simd_const.387.wasm");
    backend_t bkend( code, &wa );
 
-   CHECK(!bkend.call_with_return("env", "as-global.set_value_$g0_$g1_$g2_$g3", make_v128_i32(1,1,1,1), make_v128_i32(2,2,2,2), make_v128_i32(3,3,3,3), make_v128_i32(4,4,4,4)));
+   CHECK(!bkend.call_with_return("env", "as-global.set_value_$g0_$g1_$g2_$g3", make_v128_i32(1u,1u,1u,1u), make_v128_i32(2u,2u,2u,2u), make_v128_i32(3u,3u,3u,3u), make_v128_i32(4u,4u,4u,4u)));
    CHECK(bkend.call_with_return("env", "global.get_g0")->to_v128() == make_v128_i32(1u,1u,1u,1u));
    CHECK(bkend.call_with_return("env", "global.get_g1")->to_v128() == make_v128_i32(2u,2u,2u,2u));
    CHECK(bkend.call_with_return("env", "global.get_g2")->to_v128() == make_v128_i32(3u,3u,3u,3u));
