@@ -777,20 +777,14 @@ namespace eosio { namespace vm {
          // branching to label.  If the label has a return value it will
          // be counted in this, and the high bit will be set to signal
          // its presence.
-         auto compute_depth_change = [&](uint32_t label) -> uint32_t {
+         auto compute_depth_change = [&](uint32_t label) {
             EOS_VM_ASSERT(label < pc_stack.size(), wasm_parse_exception, "invalid label");
             pc_element_t& branch_target = pc_stack[pc_stack.size() - label - 1];
-            uint32_t result = op_stack.depth() - branch_target.operand_depth;
+            auto result = op_stack.depth() - branch_target.operand_depth;
             if(branch_target.label_result != types::pseudo) {
-               // FIXME: Reusing the high bit imposes an additional constraint
-               // on the maximum depth of the operand stack.  This isn't an
-               // actual problem right now, because the stack is hard-coded
-               // to 8192 elements, but it would be better to avoid spreading
-               // this assumption around the code.
-               result |= 0x80000000;
                op_stack.top(branch_target.label_result);
             }
-            return result;
+            return std::pair{result, branch_target.label_result};
          };
 
          // Handles branches to the end of the scope and pops the pc_stack
@@ -834,7 +828,8 @@ namespace eosio { namespace vm {
                case opcodes::return_: {
                   check_in_bounds();
                   uint32_t label = pc_stack.size() - 1;
-                  auto branch = code_writer.emit_return(compute_depth_change(label));
+                  auto [depth_change,rt] = compute_depth_change(label);
+                  auto branch = code_writer.emit_return(depth_change, rt);
                   handle_branch_target(label, branch);
                   op_stack.start_unreachable();
                } break;
@@ -902,7 +897,8 @@ namespace eosio { namespace vm {
                case opcodes::br: {
                   check_in_bounds();
                   uint32_t label = parse_varuint32(code);
-                  auto branch = code_writer.emit_br(compute_depth_change(label));
+                  auto [depth_change,rt] = compute_depth_change(label);
+                  auto branch = code_writer.emit_br(depth_change, rt);
                   handle_branch_target(label, branch);
                   op_stack.start_unreachable();
                } break;
@@ -910,7 +906,8 @@ namespace eosio { namespace vm {
                   check_in_bounds();
                   uint32_t label = parse_varuint32(code);
                   op_stack.pop(types::i32);
-                  auto branch = code_writer.emit_br_if(compute_depth_change(label));
+                  auto [depth_change,rt] = compute_depth_change(label);
+                  auto branch = code_writer.emit_br_if(depth_change, rt);
                   handle_branch_target(label, branch);
                } break;
                case opcodes::br_table: {
@@ -922,7 +919,8 @@ namespace eosio { namespace vm {
                   auto handler = code_writer.emit_br_table(table_size);
                   for (size_t i = 0; i < table_size; i++) {
                      uint32_t label = parse_varuint32(code);
-                     auto branch = handler.emit_case(compute_depth_change(label));
+                     auto [depth_change,rt] = compute_depth_change(label);
+                     auto branch = handler.emit_case(depth_change, rt);
                      handle_branch_target(label, branch);
                      uint8_t one_result = pc_stack[pc_stack.size() - label - 1].label_result;
                      if(i == 0) {
@@ -932,7 +930,8 @@ namespace eosio { namespace vm {
                      }
                   }
                   uint32_t label = parse_varuint32(code);
-                  auto branch = handler.emit_default(compute_depth_change(label));
+                  auto [depth_change,rt] = compute_depth_change(label);
+                  auto branch = handler.emit_default(depth_change, rt);
                   handle_branch_target(label, branch);
                   EOS_VM_ASSERT(table_size == 0 || result_type == pc_stack[pc_stack.size() - label - 1].label_result,
                                 wasm_parse_exception, "br_table labels must have the same type");

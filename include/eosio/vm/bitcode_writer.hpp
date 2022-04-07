@@ -29,8 +29,8 @@ namespace eosio { namespace vm {
       void emit_unreachable() { fb[op_index++] = unreachable_t{}; };
       void emit_nop() { fb[op_index++] = nop_t{}; }
       uint32_t emit_end() { return op_index; }
-      uint32_t* emit_return(uint32_t depth_change) {
-         return emit_br(depth_change);
+      uint32_t* emit_return(uint32_t depth_change, uint8_t rt) {
+         return emit_br(depth_change, rt);
       }
       void emit_block() {}
       uint32_t emit_loop() { return op_index; }
@@ -43,14 +43,14 @@ namespace eosio { namespace vm {
          *if_loc = _base_offset + op_index;
          return &else_.pc;
       }
-      uint32_t * emit_br(uint32_t depth_change) {
+      uint32_t * emit_br(uint32_t depth_change, uint8_t rt) {
          auto& instr = append_instr(br_t{});
-         instr.data = depth_change;
+         instr.data = encode_depth_change(depth_change, rt);
          return &instr.pc;
       }
-      uint32_t * emit_br_if(uint32_t depth_change) {
+      uint32_t * emit_br_if(uint32_t depth_change, uint8_t rt) {
          auto& instr = append_instr(br_if_t{});
-         instr.data = depth_change;
+         instr.data = encode_depth_change(depth_change, rt);
          return &instr.pc;
       }
 
@@ -72,14 +72,14 @@ namespace eosio { namespace vm {
             _this->fb[_this->op_index] = error_t{};
             bt.size           = table_size;
          }
-         uint32_t * emit_case(uint32_t depth_change) {
+         uint32_t * emit_case(uint32_t depth_change, uint8_t rt) {
             auto& elem = _br_tab[_i++];
-            elem.stack_pop = depth_change;
+            elem.stack_pop = encode_depth_change(depth_change, rt);
             return &elem.pc;
          }
          // Must be called after all cases
-         uint32_t* emit_default(uint32_t depth_change) {
-            auto result = emit_case(depth_change);
+         uint32_t* emit_default(uint32_t depth_change, uint8_t rt) {
+            auto result = emit_case(depth_change, rt);
             EOS_VM_ASSERT(_this->fb[_this->op_index].is_a<error_t>(), wasm_parse_exception, "overwrote br_table data");
             return result;
          }
@@ -340,6 +340,15 @@ namespace eosio { namespace vm {
     private:
 
       static void unimplemented() { EOS_VM_ASSERT(false, wasm_parse_exception, "Sorry, not implemented."); }
+      static constexpr uint32_t encode_depth_change(uint32_t depth_change, uint8_t rt) {
+         if(depth_change & 0x80000000u) {
+            unimplemented();
+         }
+         if(rt == types::pseudo) {
+            return depth_change | 0x80000000u;
+         }
+         return depth_change;
+      }
 
       growable_allocator& _allocator;
       void * _code_segment_base;

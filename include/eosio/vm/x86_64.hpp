@@ -258,9 +258,9 @@ namespace eosio { namespace vm {
       }
       void emit_nop() {}
       void* emit_end() { return code; }
-      void* emit_return(uint32_t depth_change) {
+      void* emit_return(uint32_t depth_change, uint8_t rt) {
          // Return is defined as equivalent to branching to the outermost label
-         return emit_br(depth_change);
+         return emit_br(depth_change, rt);
       }
       void emit_block() {}
       void* emit_loop() { return code; }
@@ -276,26 +276,26 @@ namespace eosio { namespace vm {
       }
       void* emit_else(void* if_loc) {
          auto icount = fixed_size_instr(5);
-         void* result = emit_br(0);
+         void* result = emit_br(0, types::pseudo);
          fix_branch(if_loc, code);
          return result;
       }
-      void* emit_br(uint32_t depth_change) {
+      void* emit_br(uint32_t depth_change, uint8_t rt) {
          auto icount = variable_size_instr(5, 17);
          // add RSP, depth_change * 8
-         emit_multipop(depth_change);
+         emit_multipop(depth_change, rt);
          // jmp DEST
          emit_bytes(0xe9);
          return emit_branch_target32();
       }
-      void* emit_br_if(uint32_t depth_change) {
+      void* emit_br_if(uint32_t depth_change, uint8_t rt) {
          auto icount = variable_size_instr(9, 26);
          // pop RAX
          emit_bytes(0x58);
          // test EAX, EAX
          emit_bytes(0x85, 0xC0);
 
-         if(depth_change == 0u || depth_change == 0x80000001u) {
+         if(depth_change == 0u || (depth_change == 1u && rt != types::pseudo)) {
             // jnz DEST
             emit_bytes(0x0F, 0x85);
             return emit_branch_target32();
@@ -304,7 +304,7 @@ namespace eosio { namespace vm {
             emit_bytes(0x0f, 0x84);
             void* skip = emit_branch_target32();
             // add depth_change*8, %rsp
-            emit_multipop(depth_change);
+            emit_multipop(depth_change, rt);
             // jmp DEST
             emit_bytes(0xe9);
             void* result = emit_branch_target32();
@@ -316,7 +316,7 @@ namespace eosio { namespace vm {
 
       // Generate a binary search.
       struct br_table_generator {
-         void* emit_case(uint32_t depth_change) {
+         void* emit_case(uint32_t depth_change, uint8_t rt) {
             while(true) {
                assert(!stack.empty() && "The parser is supposed to handle the number of elements in br_table.");
                auto [min, max, label] = stack.back();
@@ -338,7 +338,7 @@ namespace eosio { namespace vm {
                } else {
                   assert(min == static_cast<uint32_t>(_i));
                   _i++;
-                  if (depth_change == 0u || depth_change == 0x80000001u) {
+                  if (depth_change == 0u || (depth_change == 1u && rt != types::pseudo)) {
                      if(label) {
                         return label;
                      } else {
@@ -348,7 +348,7 @@ namespace eosio { namespace vm {
                      }
                   } else {
                      // jne NEXT
-                    _this->emit_multipop(depth_change);
+                    _this->emit_multipop(depth_change, rt);
                     // jmp TARGET
                     _this->emit_bytes(0xe9);
                     return _this->emit_branch_target32();
@@ -357,8 +357,8 @@ namespace eosio { namespace vm {
             }
 
          }
-         void* emit_default(uint32_t depth_change) {
-            void* result = emit_case(depth_change);
+         void* emit_default(uint32_t depth_change, uint8_t rt) {
+            void* result = emit_case(depth_change, rt);
             assert(stack.empty() && "unexpected default.");
             return result;
          }
@@ -4436,12 +4436,30 @@ namespace eosio { namespace vm {
 
       static void unimplemented() { EOS_VM_ASSERT(false, wasm_parse_exception, "Sorry, not implemented."); }
 
-      // clobbers %rax if the high bit of count is set.
-      void emit_multipop(uint32_t count) {
-         if(count > 0 && count != 0x80000001) {
-            if (count & 0x80000000) {
-               // mov (%rsp), %rax
-               emit_bytes(0x48, 0x8b, 0x04, 0x24);
+      bool is_simple_multipop(uint32_t count, uint8_t rt) {
+         switch(rt) {
+         case types::pseudo:
+            return count == 0;
+         case types::i32: case types::i64: case types::f32: case types::f64:
+            return count == 1;
+         case types::v128:
+            return count == 2;
+         default:
+            return false;
+         }
+      }
+
+      // clobbers %rax or %xmm0 if rt is not void
+      void emit_multipop(uint32_t count, uint8_t rt) {
+         if(!is_simple_multipop(count, rt)) {
+            if (rt == types::v128) {
+               assert(count >= 2u);
+               emit_vmovups(*rsp, xmm0);
+               // Leave room to write the result at the bottom of the stack
+               count -= 2;
+            } else if (rt != types::pseudo) {
+               assert(count >= 1u);
+               emit_movq(*rsp, rax);
             }
             if(count & 0x70000000) {
                // This code is probably unreachable.
@@ -4451,9 +4469,10 @@ namespace eosio { namespace vm {
             // add depth_change*8, %rsp
             emit_bytes(0x48, 0x81, 0xc4); // TODO: Prefer imm8 where appropriate
             emit_operand32(count * 8); // FIXME: handle overflow
-            if (count & 0x80000000) {
-               // push %rax
-               emit_bytes(0x50);
+            if (rt == types::v128) {
+               emit_vmovups(xmm0, *rsp);
+            } else if (rt != types::pseudo) {
+               emit_push(rax);
             }
          }
       }
