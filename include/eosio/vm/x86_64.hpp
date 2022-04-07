@@ -2190,110 +2190,56 @@ namespace eosio { namespace vm {
 
 #undef CHOOSE_FN
 
-      void emit_v128_load(uint32_t /*alignment*/, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit_vmovups(*rax, xmm0);
-         emit_sub(16, rsp);
-         emit_vmovups(xmm0, *rsp);
+      void emit_v128_load(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VMOVDQU_A, align, offset);
       }
 
-      void emit_v128_load8x8_s(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPMOVSXBW, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_vmovups(xmm0, *rsp);
+      void emit_v128_load8x8_s(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPMOVSXBW, align, offset);
       }
 
-      void emit_v128_load8x8_u(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPMOVZXBW, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_vmovups(xmm0, *rsp);
+      void emit_v128_load8x8_u(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPMOVZXBW, align, offset);
       }
 
-      void emit_v128_load16x4_s(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPMOVSXWD, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_vmovups(xmm0, *rsp);
+      void emit_v128_load16x4_s(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPMOVSXWD, align, offset);
       }
 
-      void emit_v128_load16x4_u(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPMOVZXWD, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_vmovups(xmm0, *rsp);
+      void emit_v128_load16x4_u(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPMOVZXWD, align, offset);
       }
 
-      void emit_v128_load32x2_s(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPMOVSXDQ, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load32x2_s(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPMOVSXDQ, align, offset);
       }
 
-      void emit_v128_load32x2_u(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPMOVZXDQ, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load32x2_u(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPMOVZXDQ, align, offset);
       }
 
-      void emit_v128_load8_splat(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPBROADCASTB, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load8_splat(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPBROADCASTB, align, offset);
       }
 
-      void emit_v128_load16_splat(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPBROADCASTW, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load16_splat(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPBROADCASTW, align, offset);
       }
 
-      void emit_v128_load32_splat(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPBROADCASTD, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load32_splat(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPBROADCASTD, align, offset);
       }
 
-      void emit_v128_load64_splat(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         emit(VPBROADCASTQ, *rax, xmm0);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load64_splat(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VPBROADCASTQ, align, offset);
       }
 
-      void emit_v128_load32_zero(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         // vmovd (%rax), %xmm0
-         emit_bytes(0xc5, 0xf9, 0x6e, 0x00);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load32_zero(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VMOVD_A, align, offset);
       }
 
-      void emit_v128_load64_zero(uint32_t align, uint32_t offset)
-      {
-         emit_pop_address(offset);
-         // vmovq (%rax), %xmm0
-         emit_bytes(0xc5, 0xfa, 0x7e, 0x00);
-         emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load64_zero(uint32_t align, uint32_t offset) {
+         emit_v128_loadop(VMOVQ_A, align, offset);
       }
 
       void emit_v128_store(uint32_t /*alignment*/, uint32_t offset)
@@ -3901,25 +3847,33 @@ namespace eosio { namespace vm {
             unimplemented();
          }
       }
-      
+
+      void emit_vmovdqu(disp_memory_ref mem, xmm_register reg) {
+         emit(VMOVDQU_A, mem, reg);
+      }
+
+      void emit_vmovdqu(xmm_register reg, disp_memory_ref mem) {
+         emit(VMOVDQU_B, mem, reg);
+      }
+
       void emit_vmovups(disp_memory_ref mem, xmm_register reg) {
-         emit(VEX_128_0F_WIG{0x10}, mem, reg);
+         emit(VMOVUPS_A, mem, reg);
       }
       
       void emit_vmovups(simple_memory_ref mem, xmm_register reg) {
-         emit(VEX_128_0F_WIG{0x10}, mem, reg);
+         emit(VMOVUPS_A, mem, reg);
       }
 
       void emit_vmovups(xmm_register reg, disp_memory_ref mem) {
-         emit(VEX_128_0F_WIG{0x11}, mem, reg);
+         emit(VMOVUPS_B, mem, reg);
       }
 
       void emit_vmovups(xmm_register reg, simple_memory_ref mem) {
-         emit(VEX_128_0F_WIG{0x11}, mem, reg);
+         emit(VMOVUPS_B, mem, reg);
       }
 
       void emit_vmovd(general_register32 src, xmm_register dest) {
-         emit(VEX_128_66_0F_W0{0x6e}, src, dest);
+         emit(VMOVD_A, src, dest);
       }
 
       template<typename T>
@@ -3994,6 +3948,7 @@ namespace eosio { namespace vm {
       using VEX_128_66_0F_W0 = VEX<128, pp_66, mmmm_0F, 0>;
       using VEX_128_66_0F = VEX_128_66_0F_W0;
       using VEX_128_66_0F_WIG = VEX_128_66_0F_W0;
+      using VEX_128_66_0F_W1 = VEX<128, pp_66, mmmm_0F, 1>;
       using VEX_128_66_0F38_W0 = VEX<128, pp_66, mmmm_0F38, 0>;
       using VEX_128_66_0F38_WIG = VEX_128_66_0F38_W0;
       using VEX_128_66_0F38 = VEX_128_66_0F38_W0;
@@ -4001,7 +3956,17 @@ namespace eosio { namespace vm {
       using VEX_128_0F_WIG = VEX_128_0F_W0;
       using VEX_128_66_0F3A_W0 = VEX<128, pp_66, mmmm_0F3A, 0>;
       using VEX_128_66_0F3A_W1 = VEX<128, pp_66, mmmm_0F3A, 1>;
+      using VEX_128_F3_0F_W0 = VEX<128, pp_F3, mmmm_0F, 0>;
+      using VEX_128_F3_0F_WIG = VEX_128_F3_0F_W0;
 
+      static constexpr auto VMOVD_A = VEX_128_66_0F_W0{0x6e};
+      static constexpr auto VMOVD_B = VEX_128_66_0F_W0{0x7e};
+      static constexpr auto VMOVQ_A = VEX_128_66_0F_W1{0x6e};
+      static constexpr auto VMOVQ_B = VEX_128_66_0F_W1{0x7e};
+      static constexpr auto VMOVDQU_A = VEX_128_F3_0F_WIG{0x6f};
+      static constexpr auto VMOVDQU_B = VEX_128_F3_0F_WIG{0x7f};
+      static constexpr auto VMOVUPS_A = VEX_128_66_0F_WIG{0x10};
+      static constexpr auto VMOVUPS_B = VEX_128_66_0F_WIG{0x11};
       static constexpr auto VMOVMSKPS = VEX_128_0F_WIG{0x50};
       static constexpr auto VMOVMSKPD = VEX_128_66_0F_WIG{0x50};
       static constexpr auto VPABSB = VEX_128_66_0F38_WIG{0x1c};
@@ -4550,6 +4515,14 @@ namespace eosio { namespace vm {
          emit_bytes(0x0f, opcode, 0xc2);
          // pushq %rdx
          emit_bytes(0x52);
+      }
+
+      template<typename Op>
+      void emit_v128_loadop(Op op, uint32_t /*align*/, uint32_t offset) {
+         emit_pop_address(offset);
+         emit(op, *rax, xmm0);
+         emit_sub(16, rsp);
+         emit_vmovdqu(xmm0, *rsp);
       }
 
       template<typename Op>
