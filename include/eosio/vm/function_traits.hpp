@@ -72,8 +72,8 @@ namespace eosio { namespace vm {
       inline constexpr U&& make_dependent(U&& u) { return static_cast<U&&>(u); }
    }
 
-   template <auto FN>
-   inline constexpr static bool is_callable_v = EOS_VM_HAS_MEMBER(AUTO_PARAM_WORKAROUND(FN), operator());
+   template <typename FN>
+   inline constexpr static bool is_callable_v = EOS_VM_HAS_MEMBER(FN{}, operator());
 
    template <typename F>
    constexpr bool is_callable(F&& fn) { return EOS_VM_HAS_MEMBER(fn, operator()); }

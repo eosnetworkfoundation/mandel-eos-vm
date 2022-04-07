@@ -435,7 +435,7 @@ namespace eosio { namespace vm {
       using wasm_interface_function_type = native_value_extended(*)(jit_execution_context* context, void* linear_memory, native_value* data, native_value (*fun)(void*, void*), void* stack, uint64_t count, uint32_t vector_result);
 
       wasm_interface_function_type get_execute() {
-         return reinterpret_cast<wasm_interface_function_type>(this->get_module().allocator.get_code_start());
+         return reinterpret_cast<wasm_interface_function_type>(this->get_module().allocator._code_base);
       }
 
       template<int Count>
