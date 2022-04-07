@@ -2193,55 +2193,47 @@ namespace eosio { namespace vm {
       void emit_v128_load(uint32_t /*alignment*/, uint32_t offset)
       {
          emit_pop_address(offset);
-         // movups (%rax), %xmm0
-         emit_bytes(0x0f, 0x10, 0x00);
-         // sub $16, %rsp
-         emit_bytes(0x48, 0x83, 0xec, 0x10);
-         // movups %xmm0, (%rsp)
-         emit_bytes(0x0f, 0x11, 0x04, 0x24);
+         emit_vmovups(*rax, xmm0);
+         emit_sub(16, rsp);
+         emit_vmovups(xmm0, *rsp);
       }
 
       void emit_v128_load8x8_s(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpmovsxbw (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x20, 0x00);
+         emit(VPMOVSXBW, *rax, xmm0);
          emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+         emit_vmovups(xmm0, *rsp);
       }
 
       void emit_v128_load8x8_u(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpmovzxbw (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x30, 0x00);
+         emit(VPMOVZXBW, *rax, xmm0);
          emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+         emit_vmovups(xmm0, *rsp);
       }
 
       void emit_v128_load16x4_s(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpmovsxwd (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x23, 0x00);
+         emit(VPMOVSXWD, *rax, xmm0);
          emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+         emit_vmovups(xmm0, *rsp);
       }
 
       void emit_v128_load16x4_u(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpmovzxwd (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x33, 0x00);
+         emit(VPMOVZXWD, *rax, xmm0);
          emit_sub(0x10, rsp);
-         emit_movups(xmm0, *rsp);
+         emit_vmovups(xmm0, *rsp);
       }
 
       void emit_v128_load32x2_s(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpmovsxdq (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x25, 0x00);
+         emit(VPMOVSXDQ, *rax, xmm0);
          emit_sub(0x10, rsp);
          emit_movups(xmm0, *rsp);
       }
@@ -2249,8 +2241,7 @@ namespace eosio { namespace vm {
       void emit_v128_load32x2_u(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpmovzxdq (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x35, 0x00);
+         emit(VPMOVZXDQ, *rax, xmm0);
          emit_sub(0x10, rsp);
          emit_movups(xmm0, *rsp);
       }
@@ -2258,8 +2249,7 @@ namespace eosio { namespace vm {
       void emit_v128_load8_splat(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpbroadcastb (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x78, 0x00);
+         emit(VPBROADCASTB, *rax, xmm0);
          emit_sub(0x10, rsp);
          emit_movups(xmm0, *rsp);
       }
@@ -2267,8 +2257,7 @@ namespace eosio { namespace vm {
       void emit_v128_load16_splat(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpbroadcastw (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x79, 0x00);
+         emit(VPBROADCASTW, *rax, xmm0);
          emit_sub(0x10, rsp);
          emit_movups(xmm0, *rsp);
       }
@@ -2276,8 +2265,7 @@ namespace eosio { namespace vm {
       void emit_v128_load32_splat(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpbroadcastd (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x58, 0x00);
+         emit(VPBROADCASTD, *rax, xmm0);
          emit_sub(0x10, rsp);
          emit_movups(xmm0, *rsp);
       }
@@ -2285,8 +2273,7 @@ namespace eosio { namespace vm {
       void emit_v128_load64_splat(uint32_t align, uint32_t offset)
       {
          emit_pop_address(offset);
-         // vpbroadcastq (%rax), %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x59, 0x00);
+         emit(VPBROADCASTQ, *rax, xmm0);
          emit_sub(0x10, rsp);
          emit_movups(xmm0, *rsp);
       }
@@ -4037,6 +4024,9 @@ namespace eosio { namespace vm {
       static constexpr auto VPAVGB = VEX_128_66_0F_WIG{0xe0};
       static constexpr auto VPAVGW = VEX_128_66_0F_WIG{0xe3};
       static constexpr auto VPBROADCASTB = VEX_128_66_0F38_W0{0x78};
+      static constexpr auto VPBROADCASTW = VEX_128_66_0F38_W0{0x79};
+      static constexpr auto VPBROADCASTD = VEX_128_66_0F38_W0{0x58};
+      static constexpr auto VPBROADCASTQ = VEX_128_66_0F38_W0{0x59};
       static constexpr auto VPCMPEQB = VEX_128_66_0F_WIG{0x74};
       static constexpr auto VPCMPEQW = VEX_128_66_0F_WIG{0x75};
       static constexpr auto VPCMPEQD = VEX_128_66_0F_WIG{0x76};
