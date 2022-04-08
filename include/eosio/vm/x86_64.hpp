@@ -2242,95 +2242,43 @@ namespace eosio { namespace vm {
          emit_v128_loadop(VMOVQ_A, align, offset);
       }
 
-      void emit_v128_store(uint32_t /*alignment*/, uint32_t offset)
-      {
-         // movups (%rsp), %xmm0
-         emit_bytes(0x0f, 0x10, 0x04, 0x24);
-         // add $16, %rsp
-         emit_bytes(0x48, 0x83, 0xc4, 0x10);
-         emit_pop_address(offset);
-         // movups %xmm0, (%rax)
-         emit_bytes(0x0f, 0x11, 0x00);
-      }
-
-      void emit_v128_load8_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
+      void emit_v128_store(uint32_t /*align*/, uint32_t offset) {
+         emit_vmovups(*rsp, xmm0);
          emit_add(16, rsp);
          emit_pop_address(offset);
-         // vpinsrb $lane, (%rax), %xmm0, %xmm0
-         emit_bytes(0xc4, 0xe3, 0x79, 0x20, 0x00, lane);
-         emit_sub(16, rsp);
-         emit_movups(xmm0, *rsp);
+         emit_vmovups(xmm0, *rax);
       }
 
-      void emit_v128_load16_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
-         emit_add(16, rsp);
-         emit_pop_address(offset);
-         // vpinsrw $lane, (%rax), %xmm0, %xmm0
-         emit_bytes(0xc5, 0xf9, 0xc4, 0x00, lane);
-         emit_sub(16, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load8_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_load_laneop(VPINSRB, align, offset, lane);
       }
 
-      void emit_v128_load32_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
-         emit_add(16, rsp);
-         emit_pop_address(offset);
-         // vpinsrd $lane, (%rax), %xmm0, %xmm0
-         emit_bytes(0xc4, 0xe3, 0x79, 0x22, 0x00, lane);
-         emit_sub(16, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load16_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_load_laneop(VPINSRW, align, offset, lane);
       }
 
-      void emit_v128_load64_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
-         emit_add(16, rsp);
-         emit_pop_address(offset);
-         // vpinsrq $lane, (%rax), %xmm0, %xmm0
-         emit_bytes(0xc4, 0xe3, 0xf9, 0x22, 0x00, lane);
-         emit_sub(16, rsp);
-         emit_movups(xmm0, *rsp);
+      void emit_v128_load32_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_load_laneop(VPINSRD, align, offset, lane);
       }
 
-      void emit_v128_store8_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
-         emit_add(16, rsp);
-         emit_pop_address(offset);
-         // vpextrb $lane, %xmm0, (%rax)
-         emit_bytes(0xc4, 0xe3, 0x79, 0x14, 0x00, lane);
+      void emit_v128_load64_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_load_laneop(VPINSRQ, align, offset, lane);
       }
 
-      void emit_v128_store16_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
-         emit_add(16, rsp);
-         emit_pop_address(offset);
-         // vpextrw $lane, %xmm0, (%rax)
-         emit_bytes(0xc4, 0xe3, 0x79, 0x15, 0x00, lane);
+      void emit_v128_store8_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_store_laneop(VPEXTRB, align, offset, lane);
       }
 
-      void emit_v128_store32_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
-         emit_add(16, rsp);
-         emit_pop_address(offset);
-         // vpextrd $lane, %xmm0, (%rax)
-         emit_bytes(0xc4, 0xe3, 0x79, 0x16, 0x00, lane);
+      void emit_v128_store16_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_store_laneop(VPEXTRW, align, offset, lane);
       }
 
-      void emit_v128_store64_lane(uint32_t /*alignment*/, uint32_t offset, uint8_t lane)
-      {
-         emit_movups(*rsp, xmm0);
-         emit_add(16, rsp);
-         emit_pop_address(offset);
-         // vpextrq $lane, %xmm0, (%rax)
-         emit_bytes(0xc4, 0xe3, 0xf9, 0x16, 0x00, lane);
+      void emit_v128_store32_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_store_laneop(VPEXTRD, align, offset, lane);
+      }
+
+      void emit_v128_store64_lane(uint32_t align, uint32_t offset, uint8_t lane) {
+         emit_v128_store_laneop(VPEXTRQ, align, offset, lane);
       }
 
       void emit_v128_const(v128_t value)
@@ -4000,6 +3948,14 @@ namespace eosio { namespace vm {
       static constexpr auto VPCMPGTW = VEX_128_66_0F_WIG{0x65};
       static constexpr auto VPCMPGTD = VEX_128_66_0F_WIG{0x66};
       static constexpr auto VPCMPGTQ = VEX_128_66_0F38_WIG{0x37};
+      static constexpr auto VPEXTRB = VEX_128_66_0F3A_W0{0x14};
+      static constexpr auto VPEXTRW = VEX_128_66_0F3A_W0{0x15};
+      static constexpr auto VPEXTRD = VEX_128_66_0F3A_W0{0x16};
+      static constexpr auto VPEXTRQ = VEX_128_66_0F3A_W1{0x16};
+      static constexpr auto VPINSRB = VEX_128_66_0F3A_W0{0x20};
+      static constexpr auto VPINSRW = VEX_128_66_0F_W0{0xc4};
+      static constexpr auto VPINSRD = VEX_128_66_0F3A_W0{0x22};
+      static constexpr auto VPINSRQ = VEX_128_66_0F3A_W1{0x22};
       static constexpr auto VPHADDW = VEX_128_66_0F38_WIG{0x01};
       static constexpr auto VPHADDD = VEX_128_66_0F38_WIG{0x02};
       static constexpr auto VPMADDWD = VEX_128_66_0F_WIG{0xf5};
@@ -4242,6 +4198,12 @@ namespace eosio { namespace vm {
          emit_VEX_prefix(dest & 8, false, src1 & 8, mmmm, W, src2, Sz == 256, pp);
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src1, dest);
+      }
+
+      template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W, typename R_M>
+      void emit(VEX<Sz, pp, mmmm, W> opcode, imm8 imm, R_M src1, xmm_register src2, xmm_register dest) {
+         emit(opcode, src1, src2, dest);
+         emit_byte(static_cast<uint8_t>(imm));
       }
 
       void emit_VEX_128_66_0F_WIG(uint8_t opcode, simple_memory_ref src1, xmm_register src2, xmm_register dest) {
@@ -4523,6 +4485,24 @@ namespace eosio { namespace vm {
          emit(op, *rax, xmm0);
          emit_sub(16, rsp);
          emit_vmovdqu(xmm0, *rsp);
+      }
+
+      template<typename Op>
+      void emit_v128_load_laneop(Op op, uint32_t /*align*/, uint32_t offset, uint8_t lane) {
+         emit_vmovdqu(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         emit(op, imm8{lane}, *rax, xmm0, xmm0);
+         emit_sub(16, rsp);
+         emit_vmovdqu(xmm0, *rsp);
+      }
+
+      template<typename Op>
+      void emit_v128_store_laneop(Op op, uint32_t /*align*/, uint32_t offset, uint8_t lane) {
+         emit_vmovdqu(*rsp, xmm0);
+         emit_add(16, rsp);
+         emit_pop_address(offset);
+         emit(op, imm8{lane}, *rax, xmm0);
       }
 
       template<typename Op>
