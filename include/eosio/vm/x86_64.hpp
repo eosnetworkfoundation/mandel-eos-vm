@@ -118,7 +118,7 @@ namespace eosio { namespace vm {
          emit_enter(16);
 
          // switch stack
-         emit(TESTQ, r8, r8);
+         emit(TEST, r8, r8);
          // cmovnz
          emit(IA32_REX_W(0x0f, 0x45), r8, rsp);
 
@@ -128,35 +128,35 @@ namespace eosio { namespace vm {
          emit(LDMXCSR, *(rbp - 8));
 
          // copy args
-         emit(TESTQ, r9, r9);
+         emit(TEST, r9, r9);
          void* loop_end = emit_branch8(JZ);
          void* loop = code;
-         emit_movq(*rdx, rax);
+         emit_mov(*rdx, rax);
          emit_add(8, rdx);
          emit_push(rax);
-         emit(DECQ, r9);
+         emit(DEC, r9);
          fix_branch8(emit_branch8(JNZ), loop);
          fix_branch8(loop_end, code);
 
          // load call depth counter
-         emit_movq(rbx, *(rbp - 16));
-         emit_movd(*rdi, ebx);
+         emit_mov(rbx, *(rbp - 16));
+         emit_mov(*rdi, ebx);
 
          if constexpr (Context::async_backtrace()) {
-            emit_movq(rbp, *(rdi + 16));
+            emit_mov(rbp, *(rdi + 16));
          }
          emit_call(rcx);
          if constexpr (Context::async_backtrace()) {
             emit_xor(edx, edx);
-            emit_movq(rdx, *(rdi + 16));
+            emit_mov(rdx, *(rdi + 16));
          }
 
-         emit_movq(*(rbp - 16), rbx);
+         emit_mov(*(rbp - 16), rbx);
 
          emit(LDMXCSR, *(rbp - 4));
 
-         emit_movd(*(rbp + 16), edx);
-         emit(TESTD, edx, edx);
+         emit_mov(*(rbp + 16), edx);
+         emit(TEST, edx, edx);
          void* is_vector = emit_branch8(JZ);
          emit_vpextrq(0, xmm0, rax);
          emit_vpextrq(1, xmm0, rdx);
@@ -238,7 +238,7 @@ namespace eosio { namespace vm {
             }
          }
          if (_local_count > 0 || (ft.return_count != 0 && ft.return_type == types::v128)) {
-            emit_movq(rbp, rsp);
+            emit_mov(rbp, rsp);
          }
          emit_pop(rbp);
          emit(RET);
@@ -473,7 +473,7 @@ namespace eosio { namespace vm {
          auto icount = fixed_size_instr(13); // FIXME
          if(type == types::v128) {
             emit_pop(rax);
-            emit(TESTQ, rax, rax);
+            emit(TEST, eax, eax);
             auto cond = emit_branch8(JNZ);
             emit_vmovups(*rsp, xmm0);
             emit_vmovups(xmm0, *(rsp + 16));
@@ -510,7 +510,7 @@ namespace eosio { namespace vm {
          // v128 occupies two slots
          auto addr = *(rbp + get_frame_offset(local_idx));
          if (type != types::v128) {
-            emit_movq(addr, rax);
+            emit_mov(addr, rax);
             emit_push(rax);
          } else {
             emit_vmovups(addr, xmm0);
@@ -523,7 +523,7 @@ namespace eosio { namespace vm {
          auto addr = *(rbp + get_frame_offset(local_idx));
          if (type != types::v128) {
             emit_pop(rax);
-            emit_movq(rax, addr);
+            emit_mov(rax, addr);
          } else {
             emit_vmovups(*rsp, xmm0);
             emit_add(16, rsp);
@@ -535,8 +535,8 @@ namespace eosio { namespace vm {
          auto icount = fixed_size_instr(9); // FIXME
          auto addr = *(rbp + get_frame_offset(local_idx));
          if (type != types::v128) {
-            emit_movq(*rsp, rax);
-            emit_movq(rax, addr);
+            emit_mov(*rsp, rax);
+            emit_mov(rax, addr);
          } else {
             emit_vmovups(*rsp, xmm0);
             emit_vmovups(xmm0, addr);
@@ -2394,7 +2394,7 @@ namespace eosio { namespace vm {
       {
          emit_vmovdqu(*rsp, xmm0);
          emit_add(16, rsp);
-         emit_movd(0x70707070, eax);
+         emit_mov(0x70707070, eax);
          emit_vmovd(eax, xmm1);
          emit(VPSHUFD, imm8{0}, xmm1, xmm1);
          emit(VPADDUSB, xmm1, xmm0, xmm1);
@@ -3227,7 +3227,7 @@ namespace eosio { namespace vm {
          // (x >> n) | ((0 > x) << (64 - n))
          emit_pop(rax);
          emit_and(0x3f, eax);
-         emit_movd(64, ecx);
+         emit_mov(64, ecx);
          emit_sub(eax, ecx);
          emit_vmovdqu(*rsp, xmm0);
          emit_vmovd(eax, xmm1);
@@ -3622,30 +3622,30 @@ namespace eosio { namespace vm {
          emit_operand32(src);
       }
 
-      void emit_movd(uint32_t src, general_register32 dest) {
+      void emit_mov(uint32_t src, general_register32 dest) {
          emit_REX_prefix(false, false, false, dest & 8);
          emit_bytes(0xb8 | (dest & 7));
          emit_operand32(src);
       }
 
-      void emit_movd(general_register32 src, general_register32 dest) {
-         emit(IA32(0x8b), src, dest);
+      void emit_mov(general_register32 src, general_register32 dest) {
+         emit(MOV_A, src, dest);
       }
 
-      void emit_movd(disp_memory_ref mem, general_register32 reg) {
-         emit(IA32(0x8b), mem, reg);
+      void emit_mov(disp_memory_ref mem, general_register32 reg) {
+         emit(MOV_A, mem, reg);
       }
 
-      void emit_movq(general_register64 src, general_register64 dest) {
-         emit(IA32_REX_W(0x8b), src, dest);
+      void emit_mov(general_register64 src, general_register64 dest) {
+         emit(MOV_A, src, dest);
       }
 
-      void emit_movq(disp_memory_ref mem, general_register64 reg) {
-         emit(IA32_REX_W(0x8b), mem, reg);
+      void emit_mov(disp_memory_ref mem, general_register64 reg) {
+         emit(MOV_A, mem, reg);
       }
 
-      void emit_movq(general_register64 reg, disp_memory_ref mem) {
-         emit(IA32_REX_W(0x89), mem, reg);
+      void emit_mov(general_register64 reg, disp_memory_ref mem) {
+         emit(MOV_B, mem, reg);
       }
 
       void emit_pop(general_register64 reg) {
@@ -3747,19 +3747,20 @@ namespace eosio { namespace vm {
       struct Jcc { uint8_t opcode; };
 
       // When adding jcc codes, verify that the rel8/rel32 versions are 7x and 0F 8x
-      static constexpr auto DECQ = IA32_REX_W(0xFF)/1;
+      static constexpr auto DEC = IA32_WX(0xFF)/1;
       static constexpr auto JZ = Jcc{0x74};
       static constexpr auto JNZ = Jcc{0x75};
       static constexpr auto LDMXCSR = IA32(0x0f, 0xae)/2;
       static constexpr auto LEAVE = IA32(0xc9);
+      static constexpr auto MOV_A = IA32_WX(0x8b);
+      static constexpr auto MOV_B = IA32_WX(0x89);
       static constexpr auto MOVSXB = IA32_WX(0x0f, 0xbe);
       static constexpr auto MOVSXW = IA32_WX(0x0f, 0xbf);
       static constexpr auto SETZ = IA32(0x0f, 0x94);
       static constexpr auto SETNZ = IA32(0x0f, 0x95);
       static constexpr auto STMXCSR = IA32(0x0f, 0xae)/3;
       static constexpr auto RET = IA32(0xc3);
-      static constexpr auto TESTD = IA32(0x85);
-      static constexpr auto TESTQ = IA32_REX_W(0x85);
+      static constexpr auto TEST = IA32_WX(0x85);
       static constexpr auto XOR_A = IA32_WX(0x33);
       //static constexpr auto XOR_B = IA32_WX_STORE(0x31);
 
@@ -4267,7 +4268,7 @@ namespace eosio { namespace vm {
                count -= 2;
             } else if (rt != types::pseudo) {
                assert(count >= 1u);
-               emit_movq(*rsp, rax);
+               emit_mov(*rsp, rax);
             }
             if(count & 0x70000000) {
                // This code is probably unreachable.
@@ -4820,8 +4821,8 @@ namespace eosio { namespace vm {
          int32_t extra = emit_setup_backtrace();
          emit_push(rdi);
          emit_push(rsi);
-         emit_movq(*(rsp + (16 + extra)), rdi);
-         emit_movq(*(rsp + (24 + extra)), rsi);
+         emit_mov(*(rsp + (16 + extra)), rdi);
+         emit_mov(*(rsp + (24 + extra)), rsi);
          emit_align_stack(rax);
          // movabsq $softfloatfun, %rax
          emit_bytes(0x48, 0xb8);
@@ -4832,18 +4833,18 @@ namespace eosio { namespace vm {
          emit_pop(rsi);
          emit_pop(rdi);
          emit_restore_backtrace(); // FIXME: clobbers rdx
-         emit_movq(rax, *rsp);
-         emit_movq(rdx, *(rsp + 8));
+         emit_mov(rax, *rsp);
+         emit_mov(rdx, *(rsp + 8));
       }
 
       void emit_v128_binop_softfloat(v128_t (*softfloatfun)(v128_t, v128_t)) {
          int32_t extra = emit_setup_backtrace();
          emit_push(rdi);
          emit_push(rsi);
-         emit_movq(*(rsp + (16 + extra)), rdx);
-         emit_movq(*(rsp + (24 + extra)), rcx);
-         emit_movq(*(rsp + (32 + extra)), rdi);
-         emit_movq(*(rsp + (40 + extra)), rsi);
+         emit_mov(*(rsp + (16 + extra)), rdx);
+         emit_mov(*(rsp + (24 + extra)), rcx);
+         emit_mov(*(rsp + (32 + extra)), rdi);
+         emit_mov(*(rsp + (40 + extra)), rsi);
          emit_align_stack(rax);
          // movabsq $softfloatfun, %rax
          emit_bytes(0x48, 0xb8);
@@ -4855,8 +4856,8 @@ namespace eosio { namespace vm {
          emit_pop(rdi);
          emit_restore_backtrace_basic(); // FIXME: clobbers rdx
          emit_add(16 + extra, rsp);
-         emit_movq(rax, *rsp);
-         emit_movq(rdx, *(rsp + 8));
+         emit_mov(rax, *rsp);
+         emit_mov(rdx, *(rsp + 8));
       }
 
       void* emit_error_handler(void (*handler)()) {
