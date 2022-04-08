@@ -2309,28 +2309,21 @@ namespace eosio { namespace vm {
          // movabsq $lanes[0-7], %rax
          emit_bytes(0x48, 0xb8);
          emit_shuffle_operand(lanes);
-         // vmovq %rax, %xmm2
-         emit_bytes(0xc4, 0xe1, 0xf9, 0x6e, 0xd0);
+         emit_vmovq(rax, xmm2);
          // movabsq $lanes[8-15], %rax
          emit_bytes(0x48, 0xb8);
          emit_shuffle_operand(lanes + 8);
-         // vpinsrq $1, %rax, %xmm2, %xmm2
-         emit_bytes(0xc4, 0xe3, 0xe9, 0x22, 0xd0, 0x01);
+         emit(VPINSRQ, imm8{1}, rax, xmm2, xmm2);
 
-         emit_movups(*rsp, xmm0);
-         // vpshufb %xmm2, %xmm0, %xmm1
-         emit_bytes(0xc4, 0xe2, 0x79, 0x00, 0xca);
-         // vpcmpeqb %xmm0, %xmm0, %xmm0
-         emit_bytes(0xc5, 0xf9, 0x74, 0xc0);
-         // vpxor %xmm0, %xmm2, %xmm2
-         emit_bytes(0xc5, 0xe9, 0xef, 0xd0);
+         emit_vmovdqu(*rsp, xmm0);
+         emit(VPSHUFB, xmm2, xmm0, xmm1);
+         emit_const_ones(xmm0);
+         emit(VPXOR, xmm0, xmm2, xmm2);
          emit_add(16, rsp);
-         emit_movups(*rsp, xmm0);
-         // vpshufb %xmm2, %xmm0, %xmm0
-         emit_bytes(0xc4, 0xe2, 0x79, 0x00, 0xc2);
-         // vpor %xmm1, %xmm0, %xmm0
-         emit_bytes(0xc5, 0xf9, 0xeb, 0xc1);
-         emit_movups(xmm0, *rsp);
+         emit_vmovdqu(*rsp, xmm0);
+         emit(VPSHUFB, xmm2, xmm0, xmm0);
+         emit(VPOR, xmm1, xmm0, xmm0);
+         emit_vmovdqu(xmm0, *rsp);
       }
 
       void emit_i8x16_extract_lane_s(uint8_t l) {
@@ -2399,17 +2392,15 @@ namespace eosio { namespace vm {
 
       void emit_i8x16_swizzle()
       {
-         // test x>15 and saturate to 255
-         emit_vmovups(*rsp, xmm0);
+         emit_vmovdqu(*rsp, xmm0);
          emit_add(16, rsp);
-         emit_movd(0x0f0f0f0f, eax);
+         emit_movd(0x70707070, eax);
          emit_vmovd(eax, xmm1);
          emit(VPSHUFD, imm8{0}, xmm1, xmm1);
-         emit(VPCMPGTB, xmm1, xmm0, xmm1);
-         emit(VPOR, xmm0, xmm1, xmm1);
-         emit_vmovups(*rsp, xmm0);
+         emit(VPADDUSB, xmm1, xmm0, xmm1);
+         emit_vmovdqu(*rsp, xmm0);
          emit(VPSHUFB, xmm1, xmm0, xmm0);
-         emit_vmovups(xmm0, *rsp);
+         emit_vmovdqu(xmm0, *rsp);
       }
 
       void emit_i8x16_splat()
@@ -3774,6 +3765,10 @@ namespace eosio { namespace vm {
          emit(VMOVD_A, src, dest);
       }
 
+      void emit_vmovq(general_register64 src, xmm_register dest) {
+         emit(VMOVQ_A, src, dest);
+      }
+
       template<typename T>
       void emit_vpextrb(uint8_t offset, xmm_register src, T dest) {
          emit(VPEXTRB, imm8{offset}, dest, src);
@@ -4168,8 +4163,8 @@ namespace eosio { namespace vm {
       }
 
       template<int Sz, VEX_pp pp, VEX_mmmm mmmm, int W>
-      void emit(VEX<Sz, pp, mmmm, W> opcode, xmm_register src1, xmm_register src2, xmm_register dest) {
-         emit_VEX_prefix(dest & 8, false, src1 & 8, mmmm, W, src2, Sz == 256, pp);
+      void emit(VEX<Sz, pp, mmmm, W> opcode, any_register src1, xmm_register src2, xmm_register dest) {
+         emit_VEX_prefix(dest & 8, false, src1.reg & 8, mmmm, W, src2, Sz == 256, pp);
          emit_bytes(opcode.opcode);
          emit_modrm_sib_disp(src1, dest);
       }
@@ -4491,7 +4486,7 @@ namespace eosio { namespace vm {
       void emit_v128_replace_laneop(Op op, uint8_t l) {
          emit_pop(rax);
          emit_vmovdqu(*rsp, xmm0);
-         emit(op, imm8{l}, rax, xmm0);
+         emit(op, imm8{l}, rax, xmm0, xmm0);
          emit_vmovdqu(xmm0, *rsp);
       }
 
