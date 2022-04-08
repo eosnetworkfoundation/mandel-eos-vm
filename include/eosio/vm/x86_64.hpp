@@ -3507,6 +3507,7 @@ namespace eosio { namespace vm {
     private:
 
       enum class imm8 : uint8_t {};
+      enum class imm32 : uint32_t {};
       enum general_register64 {
           rax, rcx, rdx, rbx, rsp, rbp, rsi, rdi,
           r8, r9, r10, r11, r12, r13, r14, r15
@@ -3563,9 +3564,9 @@ namespace eosio { namespace vm {
 
       void emit_add(int32_t immediate, general_register64 dest) {
          if(immediate <= 0x7F && immediate >= -0x80) {
-            emit(IA32_REX_W(0x83)/0, static_cast<imm8>(immediate), dest);
+            emit(ADD_imm8, static_cast<imm8>(immediate), dest);
          } else {
-            unimplemented();
+            emit(ADD_imm32, static_cast<imm32>(immediate), dest);
          }
       }
 
@@ -3731,6 +3732,16 @@ namespace eosio { namespace vm {
          return {base, opext};
       }
 
+      template<typename Base, typename T>
+      struct IA32_imm { Base base; };
+      template<typename T, typename B>
+      static constexpr IA32_imm<B, T> add_immediate(B b) { return {b}; }
+
+      template<typename Base, typename T>
+      inline constexpr friend auto operator/(IA32_imm<Base, T> base, int opext) {
+         return add_immediate<T>(base.base/opext);
+      }
+
       template<typename... Op>
       static constexpr auto IA32(Op... op) {
          return IA32_t<0, sizeof...(Op)>{{ static_cast<uint8_t>(op)... }};
@@ -3743,11 +3754,23 @@ namespace eosio { namespace vm {
       static constexpr auto IA32_WX(Op... op) {
          return IA32_t<-1, sizeof...(Op)>{{ static_cast<uint8_t>(op)... }};
       }
+      template<typename... Op>
+      static constexpr auto IA32_WX_imm8(Op... op) {
+         return IA32_imm<IA32_t<-1, sizeof...(Op)>, imm8>{{{ static_cast<uint8_t>(op)... }}};
+      }
+      template<typename... Op>
+      static constexpr auto IA32_WX_imm32(Op... op) {
+         return IA32_imm<IA32_t<-1, sizeof...(Op)>, imm32>{{{ static_cast<uint8_t>(op)... }}};
+      }
 
       struct Jcc { uint8_t opcode; };
 
-      // When adding jcc codes, verify that the rel8/rel32 versions are 7x and 0F 8x
+      static constexpr auto ADD_A = IA32_WX(0x03);
+      static constexpr auto ADD_B = IA32_WX(0x01);
+      static constexpr auto ADD_imm8 = IA32_WX_imm8(0x83)/0;
+      static constexpr auto ADD_imm32 = IA32_WX_imm32(0x81)/0;
       static constexpr auto DEC = IA32_WX(0xFF)/1;
+      // When adding jcc codes, verify that the rel8/rel32 versions are 7x and 0F 8x
       static constexpr auto JZ = Jcc{0x74};
       static constexpr auto JNZ = Jcc{0x75};
       static constexpr auto LDMXCSR = IA32(0x0f, 0xae)/2;
@@ -4000,6 +4023,11 @@ namespace eosio { namespace vm {
       void emit(IA32_opext<T> opcode, imm8 imm, RM r_m) {
          emit(opcode.base, imm, r_m, opcode.opext);
       }
+      template<typename T, typename I, typename... U>
+      void emit(IA32_imm<T, I> opcode, I imm, U... u) {
+         emit(opcode.base, u...);
+         emit_operand(imm);
+      }
 
       void* emit_branch8(Jcc opcode) {
          emit_bytes(opcode.opcode);
@@ -4211,6 +4239,8 @@ namespace eosio { namespace vm {
          emit_byte(val0);
          emit_bytes(vals...);
       }
+      void emit_operand(imm8 val) { emit_byte(static_cast<uint8_t>(val)); }
+      void emit_operand(imm32 val) { emit_operand32(static_cast<uint32_t>(val)); }
       void emit_operand16(uint16_t val) { memcpy(code, &val, sizeof(val)); code += sizeof(val); }
       void emit_operand32(uint32_t val) { memcpy(code, &val, sizeof(val)); code += sizeof(val); }
       void emit_operand64(uint64_t val) { memcpy(code, &val, sizeof(val)); code += sizeof(val); }
@@ -4275,9 +4305,7 @@ namespace eosio { namespace vm {
                // int3
                emit_bytes(0xCC);
             }
-            // add depth_change*8, %rsp
-            emit_bytes(0x48, 0x81, 0xc4); // TODO: Prefer imm8 where appropriate
-            emit_operand32(count * 8); // FIXME: handle overflow
+            emit_add(count * 8, rsp);
             if (rt == types::v128) {
                emit_vmovups(xmm0, *rsp);
             } else if (rt != types::pseudo) {
