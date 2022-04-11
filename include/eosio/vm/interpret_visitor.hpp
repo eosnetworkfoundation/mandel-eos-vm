@@ -1231,6 +1231,138 @@ namespace eosio { namespace vm {
          auto& oper = context.peek_operand();
          oper       = f64_const_t{ oper.to_ui64() };
       }
+      [[gnu::always_inline]] inline void operator()(const v128_load_t& op) {
+         context.inc_pc();
+         void* _ptr = pop_memop_addr(op);
+         context.push_operand(v128_const_t{ read_unaligned<v128_t>(_ptr) });
+      }
+      template<typename T, typename U, typename Op>
+      [[gnu::always_inline]] inline void v128_load_extend(const Op& op) {
+         context.inc_pc();
+         void* _ptr = pop_memop_addr(op);
+         T a;
+         static_assert(sizeof(T) == 16);
+         for(int i = 0; i < sizeof(a)/sizeof(a[0]); ++i) {
+            a[i] = read_unaligned<U>(static_cast<const char*>(_ptr) + i*sizeof(U));
+         }
+         v128_t res;
+         std::memcpy(&res, &a, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load8x8_s_t& op) {
+         v128_load_extend<std::int16_t[8], std::int8_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load8x8_u_t& op) {
+         v128_load_extend<std::uint16_t[8], std::uint8_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load16x4_s_t& op) {
+         v128_load_extend<std::int32_t[4], std::int16_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load16x4_u_t& op) {
+         v128_load_extend<std::uint32_t[4], std::uint16_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load32x2_s_t& op) {
+         v128_load_extend<std::int64_t[2], std::int32_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load32x2_u_t& op) {
+         v128_load_extend<std::uint64_t[2], std::uint32_t>(op);
+      }
+      template<typename T, typename Op>
+      [[gnu::always_inline]] inline void v128_load_splat(const Op& op) {
+         context.inc_pc();
+         void* _ptr = pop_memop_addr(op);
+         T a;
+         static_assert(sizeof(T) == 16);
+         auto val = read_unaligned<std::decay_t<decltype(a[0])>>(_ptr);
+         for(int i = 0; i < sizeof(a)/sizeof(a[0]); ++i) {
+            a[i] = val;
+         }
+         v128_t res;
+         std::memcpy(&res, &a, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load8_splat_t& op) {
+         v128_load_splat<std::uint8_t[16]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load16_splat_t& op) {
+         v128_load_splat<std::uint16_t[8]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load32_splat_t& op) {
+         v128_load_splat<std::uint32_t[4]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load64_splat_t& op) {
+         v128_load_splat<std::uint64_t[2]>(op);
+      }
+      template<typename T, typename Op>
+      [[gnu::always_inline]] inline void v128_load_zero(const Op& op) {
+         context.inc_pc();
+         void* _ptr = pop_memop_addr(op);
+         T a = {};
+         static_assert(sizeof(T) == 16);
+         a[0] = read_unaligned<std::decay_t<decltype(a[0])>>(_ptr);
+         v128_t res;
+         std::memcpy(&res, &a, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load32_zero_t& op) {
+         v128_load_zero<std::uint32_t[4]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load64_zero_t& op) {
+         v128_load_zero<std::uint64_t[2]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_store_t& op) {
+         context.inc_pc();
+         const auto& val     = context.pop_operand();
+         void* store_loc     = pop_memop_addr(op);
+         write_unaligned(store_loc, val.to_v128());
+      }
+      template<typename T, typename Op>
+      [[gnu::always_inline]] inline void v128_load_lane(const Op& op) {
+         context.inc_pc();
+         v128_t val = context.pop_operand().to_v128();
+         void* _ptr = pop_memop_addr(op);
+         T a;
+         static_assert(sizeof(T) == sizeof(val));
+         memcpy(&a, &val, sizeof(val));
+         a[op.laneidx] = read_unaligned<std::decay_t<decltype(a[0])>>(_ptr);
+         v128_t res;
+         std::memcpy(&res, &a, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load8_lane_t& op) {
+         v128_load_lane<std::uint8_t[16]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load16_lane_t& op) {
+         v128_load_lane<std::uint16_t[8]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load32_lane_t& op) {
+         v128_load_lane<std::uint32_t[4]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_load64_lane_t& op) {
+         v128_load_lane<std::uint64_t[2]>(op);
+      }
+      template<typename T, typename Op>
+      [[gnu::always_inline]] inline void v128_store_lane(const Op& op) {
+         context.inc_pc();
+         v128_t val = context.pop_operand().to_v128();
+         void* _ptr = pop_memop_addr(op);
+         T a;
+         static_assert(sizeof(T) == sizeof(val));
+         memcpy(&a, &val, sizeof(val));
+         write_unaligned(_ptr, a[op.laneidx]);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_store8_lane_t& op) {
+         v128_store_lane<std::uint8_t[16]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_store16_lane_t& op) {
+         v128_store_lane<std::uint16_t[8]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_store32_lane_t& op) {
+         v128_store_lane<std::uint32_t[4]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_store64_lane_t& op) {
+         v128_store_lane<std::uint64_t[2]>(op);
+      }
    };
 
 }} // namespace eosio::vm

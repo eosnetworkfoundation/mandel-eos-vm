@@ -769,6 +769,7 @@ namespace eosio { namespace vm {
             EOS_VM_CONVERSION_OPS(CREATE_TABLE_ENTRY)
             EOS_VM_EXIT_OP(CREATE_TABLE_ENTRY)
             EOS_VM_EMPTY_OPS(CREATE_TABLE_ENTRY)
+            EOS_VM_VEC_MEMORY_OPS(CREATE_TABLE_ENTRY)
             EOS_VM_ERROR_OPS(CREATE_TABLE_ENTRY)
             &&__ev_last
          };
@@ -792,6 +793,7 @@ namespace eosio { namespace vm {
              EOS_VM_CONVERSION_OPS(CREATE_LABEL);
              EOS_VM_EXIT_OP(CREATE_EXIT_LABEL);
              EOS_VM_EMPTY_OPS(CREATE_EMPTY_LABEL);
+             EOS_VM_VEC_MEMORY_OPS(CREATE_LABEL);
              EOS_VM_ERROR_OPS(CREATE_LABEL);
              __ev_last:
                 throw wasm_interpreter_exception{"should never reach here"};

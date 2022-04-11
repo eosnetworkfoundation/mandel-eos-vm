@@ -279,7 +279,7 @@ namespace eosio { namespace vm {
 #undef OP
 
 #define MEM_OP(op_name, opcode)                                         \
-      void emit_ ## op_name(uint32_t offset, uint32_t alignment) { unimplemented(); }
+      void emit_ ## op_name(uint32_t offset, uint32_t alignment) { fb[op_index++] = op_name ## _t{ offset, alignment }; }
 
       EOS_VM_VEC_MEMORY_OPS(MEM_OP)
 

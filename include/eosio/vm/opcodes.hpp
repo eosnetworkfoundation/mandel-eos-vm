@@ -111,6 +111,7 @@ namespace eosio { namespace vm {
       EOS_VM_CONVERSION_OPS(EOS_VM_IDENTITY)
       EOS_VM_EXIT_OP(EOS_VM_IDENTITY)
       EOS_VM_EMPTY_OPS(EOS_VM_IDENTITY)
+      EOS_VM_VEC_MEMORY_OPS(EOS_VM_IDENTITY)
       EOS_VM_ERROR_OPS(EOS_VM_IDENTITY_END)
       >;
 }} // namespace eosio::vm

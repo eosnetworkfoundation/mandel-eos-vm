@@ -160,8 +160,8 @@ namespace eosio { namespace vm {
 
    template <typename... Alternatives>
    class variant {
-      static_assert(sizeof...(Alternatives) <= std::numeric_limits<uint8_t>::max()+1,
-                    "eosio::vm::variant can only accept 256 alternatives");
+      static_assert(sizeof...(Alternatives) <= std::numeric_limits<uint16_t>::max()+1,
+                    "eosio::vm::variant can only accept 65536 alternatives");
       static_assert((... && (std::is_trivially_copy_constructible_v<Alternatives> && std::is_trivially_move_constructible_v<Alternatives> &&
                     std::is_trivially_copy_assignable_v<Alternatives> && std::is_trivially_move_assignable_v<Alternatives> &&
                     std::is_trivially_destructible_v<Alternatives>)), "Variant requires trivial types");
@@ -197,12 +197,6 @@ namespace eosio { namespace vm {
 
       static inline constexpr size_t variant_size() { return sizeof...(Alternatives); }
       inline constexpr uint16_t      index() const { return _which; }
-
-      template <size_t Index>
-      inline constexpr auto&& get_check() {
-         // TODO add outcome stuff
-         return 3;
-      }
 
       template <size_t Index>
       inline constexpr const auto& get() const & {
@@ -248,9 +242,6 @@ namespace eosio { namespace vm {
       inline constexpr bool is_a() const {
          return _which == detail::get_alternatives_index_v<Alt, Alternatives...>;
       }
-      inline constexpr void toggle_exiting_which() { _which ^= 0x100; }
-      inline constexpr void clear_exiting_which() { _which &= 0xFF; }
-      inline constexpr void set_exiting_which() { _which |= 0x100; }
 
     private:
       static constexpr size_t _sizeof  = detail::max_layout_size_v<Alternatives...>;
