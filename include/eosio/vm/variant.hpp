@@ -2,6 +2,7 @@
 
 // temporarily use exceptions
 #include <eosio/vm/exceptions.hpp>
+#include <eosio/vm/repeat.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -66,25 +67,16 @@ namespace eosio { namespace vm {
          static constexpr Ret _switch(Vis&& vis, Var&& var) {
             constexpr std::size_t sz = std::decay_t<Var>::variant_size();
             switch (var.index()) {
-               case I + 0: {
-                  return dispatcher<I + 0 < sz, Ret>::template _case<I + 0>(std::forward<Vis>(vis),
-                                                                            std::forward<Var>(var));
+#define C(n)                                                            \
+               case I + n: {                                            \
+                  return dispatcher<I + n < sz, Ret>::template _case<I + n>(std::forward<Vis>(vis), \
+                                                                            std::forward<Var>(var)); \
                }
-               case I + 1: {
-                  return dispatcher<I + 1 < sz, Ret>::template _case<I + 1>(std::forward<Vis>(vis),
-                                                                            std::forward<Var>(var));
-               }
-               case I + 2: {
-                  return dispatcher<I + 2 < sz, Ret>::template _case<I + 2>(std::forward<Vis>(vis),
-                                                                            std::forward<Var>(var));
-               }
-               case I + 3: {
-                  return dispatcher<I + 3 < sz, Ret>::template _case<I + 3>(std::forward<Vis>(vis),
-                                                                            std::forward<Var>(var));
-               }
+               EOS_VM_REPEAT_16(C)
+#undef C
                default: {
-                  return dispatcher<I + 4 < sz, Ret>::template _switch<I + 4>(std::forward<Vis>(vis),
-                                                                              std::forward<Var>(var));
+                  return dispatcher<I + 16 < sz, Ret>::template _switch<I + 16>(std::forward<Vis>(vis),
+                                                                                std::forward<Var>(var));
                }
             }
          }
@@ -92,63 +84,75 @@ namespace eosio { namespace vm {
 
 #define V_ELEM(N)                                                       \
       T##N _t##N;                                                       \
-      constexpr variant_storage(T##N& arg) : _t##N(arg) {}              \
-      constexpr variant_storage(T##N&& arg) : _t##N(std::move(arg)) {}  \
-      constexpr variant_storage(const T##N& arg) : _t##N(arg) {}        \
-      constexpr variant_storage(const T##N&& arg) : _t##N(std::move(arg)) {}
-
-#define V0 variant_storage() = default;
-#define V1 V0 V_ELEM(0)
-#define V2 V1 V_ELEM(1)
-#define V3 V2 V_ELEM(2)
-#define V4 V3 V_ELEM(3)
+      constexpr variant_storage(const T##N& arg) : _t##N(arg) {}
 
       template<typename... T>
       union variant_storage;
-      template<typename T0, typename T1, typename T2, typename T3, typename... T>
-      union variant_storage<T0, T1, T2, T3, T...> {
-         V4
+
+      template<EOS_VM_ENUM_16(typename T), typename... T>
+      union variant_storage<EOS_VM_ENUM_16(T), T...> {
+         variant_storage() = default;
+         EOS_VM_REPEAT_16(V_ELEM)
          template<typename A>
-         constexpr variant_storage(A&& arg) : _tail{static_cast<A&&>(arg)} {}
+         constexpr variant_storage(const A& arg) : _tail{arg} {}
          variant_storage<T...> _tail;
       };
-      template<typename T0>
-      union variant_storage<T0> {
-         V1
-      };
-      template<typename T0, typename T1>
-      union variant_storage<T0, T1> {
-         V2
-      };
-      template<typename T0, typename T1, typename T2>
-      union variant_storage<T0, T1, T2> {
-         V3
-      };
-      template<typename T0, typename T1, typename T2, typename T3>
-      union variant_storage<T0, T1, T2, T3> {
-         V4
-      };
 
-#undef V4
-#undef V3
-#undef V2
-#undef V1
-#undef V0
+#define STORAGE(n)                                      \
+      template<EOS_VM_ENUM_ ## n(typename T)>           \
+      union variant_storage<EOS_VM_ENUM_ ## n(T)> {     \
+         variant_storage() = default;                   \
+         EOS_VM_REPEAT_ ## n(V_ELEM)                    \
+      }
+
+      STORAGE(1);
+      STORAGE(2);
+      STORAGE(3);
+      STORAGE(4);
+      STORAGE(5);
+      STORAGE(6);
+      STORAGE(7);
+      STORAGE(8);
+      STORAGE(9);
+      STORAGE(10);
+      STORAGE(11);
+      STORAGE(12);
+      STORAGE(13);
+      STORAGE(14);
+      STORAGE(15);
+      STORAGE(16);
+
+#undef STORAGE
 #undef V_ELEM
 
+      // Note: This method of organizing the getter requires O(n) total template
+      // instantiations to instantiate the getters for every index, because
+      // the memoized recursive call is shared.  Other methods require O(n^2)
+      // instantiations.  This makes a big difference when there are 500
+      // variant types.
+      template<int I, typename Storage>
+      constexpr decltype(auto) variant_storage_get_storage(Storage&& val) {
+         if constexpr(I == 0) {
+            return static_cast<Storage&&>(val);
+         } else {
+            return (variant_storage_get_storage<I - 1>(static_cast<Storage&&>(val))._tail);
+         }
+      }
+
+      template<int I, typename Storage>
+      constexpr decltype(auto) variant_storage_get(Storage& val) {
+         decltype(auto) t = variant_storage_get_storage<I / 16>(val);
+#define GET(n)                                  \
+         if constexpr (I%16 == n) {             \
+            return (t._t ## n);                 \
+         } else
+         EOS_VM_REPEAT_16(GET)
+         {}
+#undef GET
+      }
       template<int I, typename Storage>
       constexpr decltype(auto) variant_storage_get(Storage&& val) {
-         if constexpr (I == 0) {
-            return (static_cast<Storage&&>(val)._t0);
-         } else if constexpr (I == 1) {
-            return (static_cast<Storage&&>(val)._t1);
-         } else if constexpr (I == 2) {
-            return (static_cast<Storage&&>(val)._t2);
-         } else if constexpr (I == 3) {
-            return (static_cast<Storage&&>(val)._t3);
-         } else {
-            return detail::variant_storage_get<I - 4>(static_cast<Storage&&>(val)._tail);
-         }
+         return std::move(variant_storage_get<I>(val));
       }
    } // namespace detail
 
