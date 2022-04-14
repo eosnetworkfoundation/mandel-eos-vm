@@ -285,25 +285,27 @@ namespace eosio { namespace vm {
 
 #undef MEM_OP
 
-#define LANEMEM_OP(op_name, opcode)                                         \
-      void emit_ ## op_name(uint32_t offset, uint32_t alignment, uint8_t laneidx) { unimplemented(); }
+#define LANEMEM_OP(op_name, opcode)                                     \
+      void emit_ ## op_name(uint32_t offset, uint32_t alignment, uint8_t laneidx) { \
+         fb[op_index++] = op_name ## _t{ offset, alignment, laneidx };  \
+      }
 
       EOS_VM_VEC_LANE_MEMORY_OPS(LANEMEM_OP)
 
 #undef LANEMEM_OP
 
-      void emit_v128_const(v128_t value) { unimplemented(); }
-      void emit_i8x16_shuffle(const uint8_t* lanes) { unimplemented(); }
+      void emit_v128_const(v128_t value) { fb[op_index++] = v128_const_t{ value }; }
+      void emit_i8x16_shuffle(const uint8_t* lanes) { fb[op_index++] = i8x16_shuffle_t{ lanes }; }
 
 #define LANE_OP(op_name, opcode)                                         \
-      void emit_ ## op_name(uint8_t laneidx) { unimplemented(); }
+      void emit_ ## op_name(uint8_t laneidx) { fb[op_index++] = op_name ## _t{ laneidx }; }
 
       EOS_VM_VEC_LANE_OPS(LANE_OP)
 
 #undef LANE_OP
 
 #define NUMERIC_OP(op_name, opcode)                     \
-      void emit_ ## op_name() { unimplemented(); }
+      void emit_ ## op_name() { fb[op_index++] = op_name ## _t{}; }
 
       EOS_VM_VEC_NUMERIC_OPS(NUMERIC_OP)
 
@@ -344,7 +346,7 @@ namespace eosio { namespace vm {
          if(depth_change & 0x80000000u) {
             unimplemented();
          }
-         if(rt == types::pseudo) {
+         if(rt != types::pseudo) {
             return depth_change | 0x80000000u;
          }
          return depth_change;

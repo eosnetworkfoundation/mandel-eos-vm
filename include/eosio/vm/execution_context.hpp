@@ -547,6 +547,7 @@ namespace eosio { namespace vm {
             case types::i64: return i64_const_t{ *(uint64_t*)&gl.current.value.i64 };
             case types::f32: return f32_const_t{ gl.current.value.f32 };
             case types::f64: return f64_const_t{ gl.current.value.f64 };
+            case types::v128: return v128_const_t{ gl.current.value.v128 };
             default: throw wasm_interpreter_exception{ "invalid global type" };
          }
       }
@@ -574,6 +575,11 @@ namespace eosio { namespace vm {
                                    EOS_VM_ASSERT(gl.type.content_type == types::f64, wasm_interpreter_exception,
                                                  "expected f64 global type");
                                    gl.current.value.f64 = f.data.ui;
+                                },
+                                [&](const v128_const_t& v) {
+                                   EOS_VM_ASSERT(gl.type.content_type == types::v128, wasm_interpreter_exception,
+                                                 "expected v128 global type");
+                                   gl.current.value.v128 = v.data;
                                 },
                                 [](auto) { throw wasm_interpreter_exception{ "invalid global type" }; } },
                     el);
@@ -604,6 +610,10 @@ namespace eosio { namespace vm {
                                    },
                                    [&](const f64_const_t&) {
                                       EOS_VM_ASSERT(ft.param_types[i] == types::f64, wasm_interpreter_exception,
+                                                    "function param type mismatch");
+                                   },
+                                   [&](const v128_const_t&) {
+                                      EOS_VM_ASSERT(ft.param_types[i] == types::v128, wasm_interpreter_exception,
                                                     "function param type mismatch");
                                    },
                                    [&](auto) { throw wasm_interpreter_exception{ "function param invalid type" }; } },
@@ -734,6 +744,7 @@ namespace eosio { namespace vm {
                   case types::i64: push_operand(i64_const_t{ (uint64_t)0 }); break;
                   case types::f32: push_operand(f32_const_t{ (uint32_t)0 }); break;
                   case types::f64: push_operand(f64_const_t{ (uint64_t)0 }); break;
+                  case types::v128: push_operand(v128_const_t{ v128_t{} }); break;
                   default: throw wasm_interpreter_exception{ "invalid function param type" };
                }
          }
@@ -770,9 +781,15 @@ namespace eosio { namespace vm {
             EOS_VM_EXIT_OP(CREATE_TABLE_ENTRY)
             EOS_VM_EMPTY_OPS(CREATE_TABLE_ENTRY)
             EOS_VM_VEC_MEMORY_OPS(CREATE_TABLE_ENTRY)
+            EOS_VM_VEC_LANE_MEMORY_OPS(CREATE_TABLE_ENTRY)
+            EOS_VM_VEC_CONSTANT_OPS(CREATE_TABLE_ENTRY)
+            EOS_VM_VEC_SHUFFLE_OPS(CREATE_TABLE_ENTRY)
+            EOS_VM_VEC_LANE_OPS(CREATE_TABLE_ENTRY)
+            EOS_VM_VEC_NUMERIC_OPS(CREATE_TABLE_ENTRY)
             EOS_VM_ERROR_OPS(CREATE_TABLE_ENTRY)
             &&__ev_last
          };
+         static_assert(opcode::variant_size() + 1 == sizeof(dispatch_table)/sizeof(dispatch_table[0]));
          auto* ev_variant = _state.pc;
          goto *dispatch_table[ev_variant->index()];
          while (1) {
@@ -794,6 +811,11 @@ namespace eosio { namespace vm {
              EOS_VM_EXIT_OP(CREATE_EXIT_LABEL);
              EOS_VM_EMPTY_OPS(CREATE_EMPTY_LABEL);
              EOS_VM_VEC_MEMORY_OPS(CREATE_LABEL);
+             EOS_VM_VEC_LANE_MEMORY_OPS(CREATE_LABEL);
+             EOS_VM_VEC_CONSTANT_OPS(CREATE_LABEL);
+             EOS_VM_VEC_SHUFFLE_OPS(CREATE_LABEL);
+             EOS_VM_VEC_LANE_OPS(CREATE_LABEL);
+             EOS_VM_VEC_NUMERIC_OPS(CREATE_LABEL);
              EOS_VM_ERROR_OPS(CREATE_LABEL);
              __ev_last:
                 throw wasm_interpreter_exception{"should never reach here"};

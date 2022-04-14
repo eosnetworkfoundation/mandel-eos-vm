@@ -1348,7 +1348,7 @@ namespace eosio { namespace vm {
          void* _ptr = pop_memop_addr(op);
          T a;
          static_assert(sizeof(T) == sizeof(val));
-         memcpy(&a, &val, sizeof(val));
+         std::memcpy(&a, &val, sizeof(val));
          write_unaligned(_ptr, a[op.laneidx]);
       }
       [[gnu::always_inline]] inline void operator()(const v128_store8_lane_t& op) {
@@ -1362,6 +1362,1075 @@ namespace eosio { namespace vm {
       }
       [[gnu::always_inline]] inline void operator()(const v128_store64_lane_t& op) {
          v128_store_lane<std::uint64_t[2]>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_const_t& op) {
+         context.inc_pc();
+         context.push_operand(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_shuffle_t& op) {
+         context.inc_pc();
+         v128_t c2 = context.pop_operand().to_v128();
+         v128_t c1 = context.pop_operand().to_v128();
+         uint8_t a[32];
+         std::memcpy(a + 16, &c2, sizeof(c2));
+         std::memcpy(a, &c1, sizeof(c1));
+         uint8_t r[16];
+         for(int i = 0; i < 16; ++i) {
+            r[i] = a[op.lanes[i]];
+         }
+         v128_t res;
+         std::memcpy(&res, &r, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      template<typename A, typename T, typename R, typename Op>
+      [[gnu::always_inline]] inline void v128_extract_lane(const Op& op) {
+         context.inc_pc();
+         v128_t c = context.pop_operand().to_v128();
+         A a;
+         static_assert(sizeof(a) == sizeof(c));
+         std::memcpy(&a, &c, sizeof(c));
+         context.push_operand(R{ static_cast<T>(a[op.laneidx]) });
+      }
+      template<typename A, typename T, typename Op>
+      [[gnu::always_inline]] inline void v128_replace_lane(const Op& op, T c1) {
+         context.inc_pc();
+         v128_t c2 = context.pop_operand().to_v128();
+         A a;
+         static_assert(sizeof(a) == sizeof(c2));
+         std::memcpy(&a, &c2, sizeof(c2));
+         a[op.laneidx] = c1;
+         v128_t res;
+         std::memcpy(&res, &a, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_extract_lane_s_t& op) {
+         v128_extract_lane<std::int8_t[16], std::int32_t, i32_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_extract_lane_u_t& op) {
+         v128_extract_lane<std::uint8_t[16], std::uint32_t, i32_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_replace_lane_t& op) {
+         v128_replace_lane<std::uint8_t[16]>(op, context.pop_operand().to_ui32());
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extract_lane_s_t& op) {
+         v128_extract_lane<std::int16_t[8], std::int32_t, i32_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extract_lane_u_t& op) {
+         v128_extract_lane<std::uint16_t[8], std::uint32_t, i32_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_replace_lane_t& op) {
+         v128_replace_lane<std::uint16_t[8]>(op, context.pop_operand().to_ui32());
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extract_lane_t& op) {
+         v128_extract_lane<std::uint32_t[4], std::uint32_t, i32_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_replace_lane_t& op) {
+         v128_replace_lane<std::uint32_t[4]>(op, context.pop_operand().to_ui32());
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extract_lane_t& op) {
+         v128_extract_lane<std::uint64_t[2], std::uint64_t, i64_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_replace_lane_t& op) {
+         v128_replace_lane<std::uint64_t[2]>(op, context.pop_operand().to_ui64());
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_extract_lane_t& op) {
+         v128_extract_lane<float[4], float, f32_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_replace_lane_t& op) {
+         v128_replace_lane<float[4]>(op, context.pop_operand().to_f32());
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_extract_lane_t& op) {
+         v128_extract_lane<double[2], double, f64_const_t>(op);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_replace_lane_t& op) {
+         v128_replace_lane<double[2]>(op, context.pop_operand().to_f64());
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_swizzle_t& op) {
+         context.inc_pc();
+         v128_t c2 = context.pop_operand().to_v128();
+         std::uint8_t i2[16];
+         static_assert(sizeof(i2) == sizeof(c2));
+         std::memcpy(&i2, &c2, sizeof(c2));
+         v128_t c1 = context.pop_operand().to_v128();
+         std::uint8_t j[16];
+         static_assert(sizeof(j) == sizeof(c1));
+         std::memcpy(&j, &c1, sizeof(c1));
+         std::uint8_t r[16];
+         for(int i = 0; i < 16; ++i) {
+            r[i] = i2[i] < 16 ? j[i2[i]] : 0;
+         }
+         v128_t res;
+         std::memcpy(&res, &r, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      template<typename A, typename T>
+      [[gnu::always_inline]] inline void v128_splat(const T& t) {
+         context.inc_pc();
+         A r;
+         for(int i = 0; i < sizeof(r)/sizeof(r[0]); ++i) {
+            r[i] = t;
+         }
+         v128_t res;
+         static_assert(sizeof(r) == sizeof(res));
+         std::memcpy(&res, &r, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_splat_t& op) {
+         v128_splat<std::uint8_t[16]>(context.pop_operand().to_ui32());
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_splat_t& op) {
+         v128_splat<std::uint16_t[8]>(context.pop_operand().to_ui32());
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_splat_t& op) {
+         v128_splat<std::uint32_t[4]>(context.pop_operand().to_ui32());
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_splat_t& op) {
+         v128_splat<std::uint64_t[2]>(context.pop_operand().to_ui64());
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_splat_t& op) {
+         v128_splat<float[4]>(context.pop_operand().to_f32());
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_splat_t& op) {
+         v128_splat<double[2]>(context.pop_operand().to_f64());
+      }
+      template<typename F>
+      [[gnu::always_inline]] inline void v128_unop(F&& f) {
+         context.inc_pc();
+         v128_t c1 = context.pop_operand().to_v128();
+         context.push_operand(v128_const_t{ f(c1) });
+      }
+      template<typename F>
+      [[gnu::always_inline]] inline void v128_binop(F&& f) {
+         context.inc_pc();
+         v128_t c2 = context.pop_operand().to_v128();
+         v128_t c1 = context.pop_operand().to_v128();
+         context.push_operand(v128_const_t{ f(c1, c2) });
+      }
+      template<typename A, typename R, typename F>
+      [[gnu::always_inline]] inline void v128_unop_array(F&& f) {
+         context.inc_pc();
+         static_assert(sizeof(A) == sizeof(v128_t));
+         static_assert(sizeof(R) == sizeof(v128_t));
+         v128_t c1 = context.pop_operand().to_v128();
+         A i1;
+         std::memcpy(&i1, &c1, sizeof(c1));
+         R r;
+         f(i1, r);
+         v128_t res;
+         std::memcpy(&res, &r, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      template<typename A, typename R, typename F>
+      [[gnu::always_inline]] inline void v128_binop_array(F&& f) {
+         context.inc_pc();
+         static_assert(sizeof(A) == sizeof(v128_t));
+         static_assert(sizeof(R) == sizeof(v128_t));
+         v128_t c2 = context.pop_operand().to_v128();
+         A i2;
+         std::memcpy(&i2, &c2, sizeof(c2));
+         v128_t c1 = context.pop_operand().to_v128();
+         A i1;
+         std::memcpy(&i1, &c1, sizeof(c1));
+         R r;
+         f(i1, i2, r);
+         v128_t res;
+         std::memcpy(&res, &r, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      template<typename A, typename F>
+      [[gnu::always_inline]] inline void v128_unop(F&& f) {
+         return v128_unop_array<A, A>([f](A i1, A r){
+            for(int i = 0; i < sizeof(A)/sizeof(i1[0]); ++i) {
+               r[i] = f(i1[i]);
+            }
+         });
+      }
+      template<typename A, typename F>
+      [[gnu::always_inline]] inline void v128_binop(F&& f) {
+         return v128_binop_array<A, A>([f](A i1, A i2, A r){
+            for(int i = 0; i < sizeof(A)/sizeof(i1[0]); ++i) {
+               r[i] = f(i1[i], i2[i]);
+            }
+         });
+      }
+      template<typename A, typename F>
+      [[gnu::always_inline]] inline void v128_ternop(F&& f) {
+         context.inc_pc();
+         v128_t c3 = context.pop_operand().to_v128();
+         A i3;
+         static_assert(sizeof(i3) == sizeof(c3));
+         std::memcpy(&i3, &c3, sizeof(c3));
+         v128_t c2 = context.pop_operand().to_v128();
+         A i2;
+         static_assert(sizeof(i2) == sizeof(c2));
+         std::memcpy(&i2, &c2, sizeof(c2));
+         v128_t c1 = context.pop_operand().to_v128();
+         A i1;
+         static_assert(sizeof(i1) == sizeof(c1));
+         std::memcpy(&i1, &c1, sizeof(c1));
+         A r;
+         for(int i = 0; i < sizeof(i1)/sizeof(i1[0]); ++i) {
+            r[i] = f(i1[i], i2[i], i3[i]);
+         }
+         v128_t res;
+         std::memcpy(&res, &r, sizeof(res));
+         context.push_operand(v128_const_t{ res });
+      }
+      template<typename A, typename F>
+      [[gnu::always_inline]] inline void v128_unop_i32(F&& f) {
+         context.inc_pc();
+         v128_t c1 = context.pop_operand().to_v128();
+         A i1;
+         static_assert(sizeof(i1) == sizeof(c1));
+         std::memcpy(&i1, &c1, sizeof(c1));
+         context.push_operand(i32_const_t{ f(i1) });
+      }
+      template<typename A, typename R, typename F>
+      [[gnu::always_inline]] inline void v128_narrow(F&& f) {
+         v128_binop_array<A, R>([f](A a, A b, R r){
+            static_assert(2*sizeof(A)/sizeof(a[0]) == sizeof(R)/sizeof(r[0]));
+            for(int i = 0; i < sizeof(A)/sizeof(a[0]); ++i) {
+               r[i] = f(a[i]);
+            }
+            for(int i = 0; i < sizeof(A)/sizeof(b[0]); ++i) {
+               r[i+sizeof(R)/sizeof(r[0])/2] = f(b[i]);
+            }
+         });
+      }
+      template<typename A, typename R>
+      [[gnu::always_inline]] inline void v128_extend(bool high) {
+         v128_unop_array<A, R>([high](A a, R r){
+            static_assert(sizeof(A)/sizeof(a[0]) == 2*sizeof(R)/sizeof(r[0]));
+            for(int i = 0; i < sizeof(R)/sizeof(r[0]); ++i) {
+               r[i] = a[i + high * sizeof(R)/sizeof(r[0])];
+            }
+         });
+      }
+      template<typename A, typename R>
+      [[gnu::always_inline]] inline void v128_extadd_pairwise() {
+         v128_unop_array<A, R>([](A a, R r){
+            static_assert(sizeof(A)/sizeof(a[0]) == 2*sizeof(R)/sizeof(r[0]));
+            for(int i = 0; i < sizeof(R)/sizeof(r[0]); ++i) {
+               r[i] = static_cast<std::remove_extent_t<R>>(a[2*i]) + a[2*i+1];
+            }
+         });
+      }
+      template<typename A, typename R>
+      [[gnu::always_inline]] inline void v128_extmul(bool high) {
+         v128_binop_array<A, R>([high](A a, A b, R r){
+            static_assert(sizeof(A)/sizeof(a[0]) == 2*sizeof(R)/sizeof(r[0]));
+            if(high) {
+               a += sizeof(R)/sizeof(r[0]);
+            }
+            for(int i = 0; i < sizeof(R)/sizeof(r[0]); ++i) {
+               r[i] = static_cast<std::remove_extent_t<R>>(a[i]) * b[i];
+            }
+         });
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i8x16_eq_t& op) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b){ return a == b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_ne_t& op) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b){ return a != b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_lt_s_t& op) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b){ return a < b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_lt_u_t& op) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b){ return a < b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_gt_s_t& op) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b){ return a > b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_gt_u_t& op) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b){ return a > b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_le_s_t& op) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b){ return a <= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_le_u_t& op) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b){ return a <= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_ge_s_t& op) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b){ return a >= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_ge_u_t& op) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b){ return a >= b? -1 : 0; });
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i16x8_eq_t& op) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b){ return a == b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_ne_t& op) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b){ return a != b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_lt_s_t& op) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b){ return a < b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_lt_u_t& op) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b){ return a < b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_gt_s_t& op) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b){ return a > b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_gt_u_t& op) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b){ return a > b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_le_s_t& op) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b){ return a <= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_le_u_t& op) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b){ return a <= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_ge_s_t& op) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b){ return a >= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_ge_u_t& op) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b){ return a >= b? -1 : 0; });
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i32x4_eq_t& op) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b){ return a == b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_ne_t& op) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b){ return a != b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_lt_s_t& op) {
+         v128_binop<std::int32_t[4]>([](std::int32_t a, std::int32_t b){ return a < b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_lt_u_t& op) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b){ return a < b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_gt_s_t& op) {
+         v128_binop<std::int32_t[4]>([](std::int32_t a, std::int32_t b){ return a > b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_gt_u_t& op) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b){ return a > b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_le_s_t& op) {
+         v128_binop<std::int32_t[4]>([](std::int32_t a, std::int32_t b){ return a <= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_le_u_t& op) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b){ return a <= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_ge_s_t& op) {
+         v128_binop<std::int32_t[4]>([](std::int32_t a, std::int32_t b){ return a >= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_ge_u_t& op) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b){ return a >= b? -1 : 0; });
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i64x2_eq_t& op) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b){ return a == b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_ne_t& op) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b){ return a != b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_lt_s_t& op) {
+         v128_binop<std::int64_t[2]>([](std::int64_t a, std::int64_t b){ return a < b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_gt_s_t& op) {
+         v128_binop<std::int64_t[2]>([](std::int64_t a, std::int64_t b){ return a > b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_le_s_t& op) {
+         v128_binop<std::int64_t[2]>([](std::int64_t a, std::int64_t b){ return a <= b? -1 : 0; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_ge_s_t& op) {
+         v128_binop<std::int64_t[2]>([](std::int64_t a, std::int64_t b){ return a >= b? -1 : 0; });
+      }
+
+      [[gnu::always_inline]] inline void operator()(const f32x4_eq_t& op) {
+         v128_binop(&_eosio_f32x4_eq);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_ne_t& op) {
+         v128_binop(&_eosio_f32x4_ne);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_lt_t& op) {
+         v128_binop(&_eosio_f32x4_lt);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_gt_t& op) {
+         v128_binop(&_eosio_f32x4_gt);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_le_t& op) {
+         v128_binop(&_eosio_f32x4_le);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_ge_t& op) {
+         v128_binop(&_eosio_f32x4_ge);
+      }
+
+      [[gnu::always_inline]] inline void operator()(const f64x2_eq_t& op) {
+         v128_binop(&_eosio_f64x2_eq);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_ne_t& op) {
+         v128_binop(&_eosio_f64x2_ne);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_lt_t& op) {
+         v128_binop(&_eosio_f64x2_lt);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_gt_t&) {
+         v128_binop(&_eosio_f64x2_gt);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_le_t&) {
+         v128_binop(&_eosio_f64x2_le);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_ge_t&) {
+         v128_binop(&_eosio_f64x2_ge);
+      }
+
+      [[gnu::always_inline]] inline void operator()(const v128_not_t&) {
+         v128_unop<std::uint64_t[2]>([](std::uint64_t a){ return ~a; });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_and_t&) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b){ return a & b; });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_andnot_t&) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b){ return a & ~b; });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_or_t&) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b){ return a | b; });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_xor_t&) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b){ return a ^ b; });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_bitselect_t&) {
+         v128_ternop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b, std::uint64_t c){
+            return (a & c) | (b & ~c);
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const v128_any_true_t&) {
+         v128_unop_i32<std::uint64_t[2]>([](std::uint64_t a[2]){
+            uint32_t result = 0;
+            for(int i = 0; i < 2; ++i) {
+               if(a[i] != 0) { result = 1; }
+            }
+            return result;
+         });
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i8x16_abs_t&) {
+         v128_unop<std::uint8_t[16]>([](std::int8_t a){ return a < 0? -a : a; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_neg_t&) {
+         v128_unop<std::uint8_t[16]>([](std::uint8_t a){ return -a; });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_popcnt_t&) {
+         v128_unop<std::uint8_t[16]>([](std::uint8_t a){ return __builtin_popcount(a); });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_all_true_t&) {
+         v128_unop_i32<std::uint8_t[16]>([](std::uint8_t a[16]){
+            uint32_t result = 1;
+            for(int i = 0; i < 16; ++i) {
+               if(a[i] == 0) { result = 0; }
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_bitmask_t&) {
+         v128_unop_i32<std::int8_t[16]>([](std::int8_t a[16]){
+            uint32_t result = 0;
+            for(int i = 0; i < 16; ++i) {
+               result |= (a[i] < 0) << i;
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_narrow_i16x8_s_t&) {
+         v128_narrow<std::int16_t[8], std::int8_t[16]>([](std::int16_t a) -> std::int8_t {
+            if(a < -0x80) return -0x80;
+            else if(a > 0x7f) return 0x7f;
+            else return a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_narrow_i16x8_u_t&) {
+         v128_narrow<std::int16_t[8], std::uint8_t[16]>([](std::int16_t a) -> std::uint8_t {
+            if(a < 0) return 0;
+            else if(a > 0xff) return 0xff;
+            else return a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_shl_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x7;
+         v128_unop<std::uint8_t[16]>([b](std::uint8_t a) {
+            return a << b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_shr_s_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x7;
+         v128_unop<std::uint8_t[16]>([b](std::int8_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_shr_u_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x7;
+         v128_unop<std::uint8_t[16]>([b](std::uint8_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_add_t&) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b) {
+            return a + b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_add_sat_s_t&) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b) {
+            auto r = a + b;
+            if(r < -0x80) return -0x80;
+            else if(r > 0x7f) return 0x7f;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_add_sat_u_t&) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b) {
+            auto r = a + b;
+            if(r > 0xff) return 0xff;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_sub_t&) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b) {
+            return a - b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_sub_sat_s_t&) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b) {
+            auto r = a - b;
+            if(r < -0x80) return -0x80;
+            else if(r > 0x7f) return 0x7f;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_sub_sat_u_t&) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b) {
+            auto r = a - b;
+            if(r < 0) return 0;
+            else if(r > 0xff) return 0xff;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_min_s_t&) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b) {
+            return a < b? a : b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_min_u_t&) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b) {
+            return a < b? a : b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_max_s_t&) {
+         v128_binop<std::int8_t[16]>([](std::int8_t a, std::int8_t b) {
+            return a < b? b : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_max_u_t&) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b) {
+            return a < b? b : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i8x16_avgr_u_t&) {
+         v128_binop<std::uint8_t[16]>([](std::uint8_t a, std::uint8_t b) {
+            return (a + b + 1)/2;
+         });
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i16x8_extadd_pairwise_i8x16_s_t&) {
+         v128_extadd_pairwise<std::int8_t[16], std::int16_t[8]>();
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extadd_pairwise_i8x16_u_t&) {
+         v128_extadd_pairwise<std::uint8_t[16], std::uint16_t[8]>();
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_abs_t&) {
+         v128_unop<std::uint16_t[8]>([](std::int16_t a) {
+            return a < 0 ? -a : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_neg_t&) {
+         v128_unop<std::uint16_t[8]>([](std::uint16_t a) {
+            return -a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_q15mulr_sat_s_t&) {
+         v128_binop<std::uint16_t[8]>([](std::int16_t a, std::int16_t b) {
+            uint16_t tmp = (static_cast<std::int32_t>(a) * b + 0x4000) >> 15;
+            if(tmp == 0x8000) tmp = 0x7fff;
+            return tmp;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_all_true_t&) {
+         v128_unop_i32<std::uint16_t[8]>([](std::uint16_t a[8]){
+            uint32_t result = 1;
+            for(int i = 0; i < 8; ++i) {
+               if(a[i] == 0) { result = 0; }
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_bitmask_t&) {
+         v128_unop_i32<std::int16_t[8]>([](std::int16_t a[8]){
+            uint32_t result = 0;
+            for(int i = 0; i < 8; ++i) {
+               result |= (a[i] < 0) << i;
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_narrow_i32x4_s_t&) {
+         v128_narrow<std::int32_t[4], std::int16_t[8]>([](std::int32_t a) -> std::int16_t {
+            if(a < -0x8000) return -0x8000;
+            else if(a > 0x7fff) return 0x7fff;
+            else return a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_narrow_i32x4_u_t&) {
+         v128_narrow<std::uint32_t[4], std::uint16_t[8]>([](std::int32_t a) -> std::uint16_t {
+            if(a < 0) return 0;
+            else if(a > 0xffff) return 0xffff;
+            else return a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extend_low_i8x16_s_t&) {
+         v128_extend<std::int8_t[16], std::int16_t[8]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extend_high_i8x16_s_t&) {
+         v128_extend<std::int8_t[16], std::int16_t[8]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extend_low_i8x16_u_t&) {
+         v128_extend<std::uint8_t[16], std::uint16_t[8]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extend_high_i8x16_u_t&) {
+         v128_extend<std::uint8_t[16], std::uint16_t[8]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_shl_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0xf;
+         v128_unop<std::uint16_t[8]>([b](std::uint16_t a) {
+            return a << b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_shr_s_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0xf;
+         v128_unop<std::uint16_t[8]>([b](std::int16_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_shr_u_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0xf;
+         v128_unop<std::uint16_t[8]>([b](std::uint16_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_add_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            return a + b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_add_sat_s_t&) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b) {
+            auto r = a + b;
+            if(r < -0x8000) return -0x8000;
+            else if(r > 0x7fff) return 0x7fff;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_add_sat_u_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            auto r = a + b;
+            if(r > 0xffff) return 0xffff;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_sub_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            return a - b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_sub_sat_s_t&) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b) {
+            auto r = static_cast<int32_t>(a) - static_cast<int32_t>(b);
+            if(r < -0x8000) return -0x8000;
+            else if(r > 0x7fff) return 0x7fff;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_sub_sat_u_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            auto r = static_cast<int32_t>(a) - static_cast<int32_t>(b);
+            if(r < 0) return 0;
+            if(r > 0xffff) return 0xffff;
+            else return r;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_mul_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            return a * b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_min_s_t&) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b) {
+            return a < b? a : b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_min_u_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            return a < b? a : b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_max_s_t&) {
+         v128_binop<std::int16_t[8]>([](std::int16_t a, std::int16_t b) {
+            return a < b? b : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_max_u_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            return a < b? b : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_avgr_u_t&) {
+         v128_binop<std::uint16_t[8]>([](std::uint16_t a, std::uint16_t b) {
+            return (a + b + 1)/2;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extmul_low_i8x16_s_t&) {
+         v128_extmul<std::int8_t[16], std::int16_t[8]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extmul_high_i8x16_s_t&) {
+         v128_extmul<std::int8_t[16], std::int16_t[8]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extmul_low_i8x16_u_t&) {
+         v128_extmul<std::uint8_t[16], std::uint16_t[8]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i16x8_extmul_high_i8x16_u_t&) {
+         v128_extmul<std::uint8_t[16], std::uint16_t[8]>(true);
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i32x4_extadd_pairwise_i16x8_s_t&) {
+         v128_extadd_pairwise<std::int16_t[8], std::int32_t[4]>();
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extadd_pairwise_i16x8_u_t&) {
+         v128_extadd_pairwise<std::uint16_t[8], std::uint32_t[4]>();
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_abs_t&) {
+         v128_unop<std::uint32_t[4]>([](std::int32_t a) {
+            return a < 0 ? -a : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_neg_t&) {
+         v128_unop<std::uint32_t[4]>([](std::uint32_t a) {
+            return -a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_all_true_t&) {
+         v128_unop_i32<std::uint32_t[4]>([](std::uint32_t a[4]){
+            uint32_t result = 1;
+            for(int i = 0; i < 4; ++i) {
+               if(a[i] == 0) { result = 0; }
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_bitmask_t&) {
+         v128_unop_i32<std::int32_t[4]>([](std::int32_t a[4]){
+            uint32_t result = 0;
+            for(int i = 0; i < 4; ++i) {
+               result |= (a[i] < 0) << i;
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extend_low_i16x8_s_t&) {
+         v128_extend<std::int16_t[8], std::int32_t[4]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extend_high_i16x8_s_t&) {
+         v128_extend<std::int16_t[8], std::int32_t[4]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extend_low_i16x8_u_t&) {
+         v128_extend<std::uint16_t[8], std::uint32_t[4]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extend_high_i16x8_u_t&) {
+         v128_extend<std::uint16_t[8], std::uint32_t[4]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_shl_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x1f;
+         v128_unop<std::uint32_t[4]>([b](std::uint32_t a) {
+            return a << b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_shr_s_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x1f;
+         v128_unop<std::uint32_t[4]>([b](std::int32_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_shr_u_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x1f;
+         v128_unop<std::uint32_t[4]>([b](std::uint32_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_add_t&) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b) {
+            return a + b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_sub_t&) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b) {
+            return a - b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_mul_t&) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b) {
+            return a * b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_min_s_t&) {
+         v128_binop<std::int32_t[4]>([](std::int32_t a, std::int32_t b) {
+            return a < b? a : b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_min_u_t&) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b) {
+            return a < b? a : b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_max_s_t&) {
+         v128_binop<std::int32_t[4]>([](std::int32_t a, std::int32_t b) {
+            return a < b? b : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_max_u_t&) {
+         v128_binop<std::uint32_t[4]>([](std::uint32_t a, std::uint32_t b) {
+            return a < b? b : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_dot_i16x8_s_t&) {
+         v128_binop_array<std::int16_t[8], std::int32_t[4]>([](std::int16_t a[8], std::int16_t b[8], std::int32_t r[4]) {
+            for(int i = 0; i < 4; ++i) {
+               auto p1 = static_cast<int32_t>(a[2*i]) * b[2*i];
+               auto p2 = static_cast<int32_t>(a[2*i+1]) * b[2*i+1];
+               r[i] = p1 + p2;
+            }
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extmul_low_i16x8_s_t&) {
+         v128_extmul<std::int16_t[8], std::int32_t[4]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extmul_high_i16x8_s_t&) {
+         v128_extmul<std::int16_t[8], std::int32_t[4]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extmul_low_i16x8_u_t&) {
+         v128_extmul<std::uint16_t[8], std::uint32_t[4]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_extmul_high_i16x8_u_t&) {
+         v128_extmul<std::uint16_t[8], std::uint32_t[4]>(true);
+      }
+      
+      [[gnu::always_inline]] inline void operator()(const i64x2_abs_t&) {
+         v128_unop<std::uint64_t[2]>([](std::int64_t a) {
+            return a < 0 ? -a : a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_neg_t&) {
+         v128_unop<std::uint64_t[2]>([](std::uint64_t a) {
+            return -a;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_all_true_t&) {
+         v128_unop_i32<std::uint64_t[2]>([](std::uint64_t a[2]){
+            uint32_t result = 1;
+            for(int i = 0; i < 2; ++i) {
+               if(a[i] == 0) { result = 0; }
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_bitmask_t&) {
+         v128_unop_i32<std::int64_t[2]>([](std::int64_t a[2]){
+            uint32_t result = 0;
+            for(int i = 0; i < 2; ++i) {
+               result |= (a[i] < 0) << i;
+            }
+            return result;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extend_low_i32x4_s_t&) {
+         v128_extend<std::int32_t[4], std::int64_t[2]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extend_high_i32x4_s_t&) {
+         v128_extend<std::int32_t[4], std::int64_t[2]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extend_low_i32x4_u_t&) {
+         v128_extend<std::uint32_t[4], std::uint64_t[2]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extend_high_i32x4_u_t&) {
+         v128_extend<std::uint32_t[4], std::uint64_t[2]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_shl_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x3f;
+         v128_unop<std::uint64_t[2]>([b](std::uint64_t a) {
+            return a << b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_shr_s_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x3f;
+         v128_unop<std::uint64_t[2]>([b](std::int64_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_shr_u_t&) {
+         uint32_t b = context.pop_operand().to_ui32() & 0x3f;
+         v128_unop<std::uint64_t[2]>([b](std::uint64_t a) {
+            return a >> b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_add_t&) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b) {
+            return a + b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_sub_t&) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b) {
+            return a - b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_mul_t&) {
+         v128_binop<std::uint64_t[2]>([](std::uint64_t a, std::uint64_t b) {
+            return a * b;
+         });
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extmul_low_i32x4_s_t&) {
+         v128_extmul<std::int32_t[4], std::int64_t[2]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extmul_high_i32x4_s_t&) {
+         v128_extmul<std::int32_t[4], std::int64_t[2]>(true);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extmul_low_i32x4_u_t&) {
+         v128_extmul<std::uint32_t[4], std::uint64_t[2]>(false);
+      }
+      [[gnu::always_inline]] inline void operator()(const i64x2_extmul_high_i32x4_u_t&) {
+         v128_extmul<std::uint32_t[4], std::uint64_t[2]>(true);
+      }
+
+      [[gnu::always_inline]] inline void operator()(const f32x4_ceil_t&) {
+         v128_unop(&_eosio_f32x4_ceil);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_floor_t&) {
+         v128_unop(&_eosio_f32x4_floor);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_trunc_t&) {
+         v128_unop(&_eosio_f32x4_trunc);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_nearest_t&) {
+         v128_unop(&_eosio_f32x4_nearest);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_abs_t&) {
+         v128_unop(&_eosio_f32x4_abs);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_neg_t&) {
+         v128_unop(&_eosio_f32x4_neg);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_sqrt_t&) {
+         v128_unop(&_eosio_f32x4_sqrt);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_add_t&) {
+         v128_binop(&_eosio_f32x4_add);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_sub_t&) {
+         v128_binop(&_eosio_f32x4_sub);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_mul_t&) {
+         v128_binop(&_eosio_f32x4_mul);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_div_t&) {
+         v128_binop(&_eosio_f32x4_div);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_min_t&) {
+         v128_binop(&_eosio_f32x4_min);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_max_t&) {
+         v128_binop(&_eosio_f32x4_max);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_pmin_t&) {
+         v128_binop(&_eosio_f32x4_pmin);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_pmax_t&) {
+         v128_binop(&_eosio_f32x4_pmax);
+      }
+
+      [[gnu::always_inline]] inline void operator()(const f64x2_ceil_t&) {
+         v128_unop(&_eosio_f64x2_ceil);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_floor_t&) {
+         v128_unop(&_eosio_f64x2_floor);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_trunc_t&) {
+         v128_unop(&_eosio_f64x2_trunc);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_nearest_t&) {
+         v128_unop(&_eosio_f64x2_nearest);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_abs_t&) {
+         v128_unop(&_eosio_f64x2_abs);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_neg_t&) {
+         v128_unop(&_eosio_f64x2_neg);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_sqrt_t&) {
+         v128_unop(&_eosio_f64x2_sqrt);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_add_t&) {
+         v128_binop(&_eosio_f64x2_add);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_sub_t&) {
+         v128_binop(&_eosio_f64x2_sub);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_mul_t&) {
+         v128_binop(&_eosio_f64x2_mul);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_div_t&) {
+         v128_binop(&_eosio_f64x2_div);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_min_t&) {
+         v128_binop(&_eosio_f64x2_min);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_max_t&) {
+         v128_binop(&_eosio_f64x2_max);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_pmin_t&) {
+         v128_binop(&_eosio_f64x2_pmin);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_pmax_t&) {
+         v128_binop(&_eosio_f64x2_pmax);
+      }
+
+      [[gnu::always_inline]] inline void operator()(const i32x4_trunc_sat_f32x4_s_t&) {
+         v128_unop(&_eosio_i32x4_trunc_sat_f32x4_s);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_trunc_sat_f32x4_u_t&) {
+         v128_unop(&_eosio_i32x4_trunc_sat_f32x4_u);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_convert_i32x4_s_t&) {
+         v128_unop(&_eosio_f32x4_convert_i32x4_s);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_convert_i32x4_u_t&) {
+         v128_unop(&_eosio_f32x4_convert_i32x4_u);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_trunc_sat_f64x2_s_zero_t&) {
+         v128_unop(&_eosio_i32x4_trunc_sat_f64x2_s_zero);
+      }
+      [[gnu::always_inline]] inline void operator()(const i32x4_trunc_sat_f64x2_u_zero_t&) {
+         v128_unop(&_eosio_i32x4_trunc_sat_f64x2_u_zero);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_convert_low_i32x4_s_t&) {
+         v128_unop(&_eosio_f64x2_convert_low_i32x4_s);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_convert_low_i32x4_u_t&) {
+         v128_unop(&_eosio_f64x2_convert_low_i32x4_u);
+      }
+      [[gnu::always_inline]] inline void operator()(const f32x4_demote_f64x2_zero_t&) {
+         v128_unop(&_eosio_f32x4_demote_f64x2_zero);
+      }
+      [[gnu::always_inline]] inline void operator()(const f64x2_promote_low_f32x4_t&) {
+         v128_unop(&_eosio_f64x2_promote_low_f32x4);
       }
    };
 

@@ -704,7 +704,7 @@
 #define EOS_VM_CREATE_VEC_SHUFFLE_TYPE(name, code)                                                                     \
    struct EOS_VM_OPCODE_T(name) {                                                                                      \
       EOS_VM_OPCODE_T(name)() = default;                                                                               \
-      explicit EOS_VM_OPCODE_T(name)(uint8_t lanes[16]) { std::memcpy(this->lanes, lanes, 16); }                       \
+      explicit EOS_VM_OPCODE_T(name)(const uint8_t lanes[16]) { std::memcpy(this->lanes, lanes, 16); }                 \
       uint8_t lanes[16];                                                                                               \
       static constexpr uint8_t opcode_prefix = 0xfd;                                                                   \
       static constexpr uint8_t opcode = code;                                                                          \

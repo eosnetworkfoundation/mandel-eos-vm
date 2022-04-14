@@ -22,6 +22,12 @@ namespace eosio { namespace vm {
    // implementation details
    namespace detail {
 
+      constexpr std::size_t find_impl(std::initializer_list<bool> il) {
+         std::size_t result = 0;
+         for(auto iter = il.begin(), end = il.end(); iter != end && !*iter; ++iter, ++result) {}
+         return result;
+      }
+
       template <typename... Ts>
       constexpr std::size_t max_layout_size_v = std::max({sizeof(Ts)...});
 
@@ -31,12 +37,8 @@ namespace eosio { namespace vm {
       template <typename T, typename... Alternatives>
       constexpr bool is_valid_alternative_v = (... + (std::is_same_v<T, Alternatives>?1:0)) != 0;
 
-      template <typename T, typename Alternative, typename... Alternatives>
-      constexpr std::size_t get_alternatives_index_v =
-               std::is_same_v<T, Alternative> ? 0 : get_alternatives_index_v<T, Alternatives...> + 1;
-
-      template <typename T, typename Alternative>
-      constexpr std::size_t get_alternatives_index_v<T, Alternative> = 0;
+      template <typename T, typename... Alternatives>
+      constexpr std::size_t get_alternatives_index_v = find_impl({std::is_same_v<T, Alternatives>...});
 
       template <std::size_t I, typename... Alternatives>
       using get_alternative_t = std::tuple_element_t<I, std::tuple<Alternatives...>>;
